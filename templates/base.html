@@ -5,20 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}My Website{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header>
-        <nav>
-            <a href="/">Home</a>
-        </nav>
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="logo">
+            <i class="fa-solid fa-code"></i> Harsh Singhal
+        </div>
+        <div class="topbar-actions">
+            <a href="https://www.linkedin.com/in/harshsinghal726/" target="_blank" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="https://github.com/SinghalHarsh" target="_blank" title="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a href="https://medium.com/@harshsinghal726" target="_blank" title="Medium"><i class="fa-brands fa-medium"></i></a>
+            <a href="https://www.youtube.com/channel/UCKH0vGj3x3kMpsFaXNvtnVg" target="_blank" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            <a href="mailto:harshsinghal726@gmail.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
+            <a href="https://leetcode.com/harshsinghal726/" target="_blank" title="LeetCode"><i class="fa-solid fa-code"></i></a>
+        </div>
     </header>
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+    <div class="container">
+        <aside class="sidebar">
+            <nav>
+                <ul>
+                    <li>
+                        <a href="/" class="{{ 'active' if request.path == '/' else '' }}">
+                            <i class="fa-solid fa-house"></i> Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/about" class="{{ 'active' if request.path == '/about' else '' }}">
+                            <i class="fa-solid fa-user"></i> About
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/blog" class="{{ 'active' if request.path == '/blog' else '' }}">
+                            <i class="fa-solid fa-pen-nib"></i> Blog
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/reminder" class="{{ 'active' if request.path == '/reminder' else '' }}">
+                            <i class="fa-solid fa-bell"></i> Reminders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/quotes" class="{{ 'active' if request.path == '/quotes' else '' }}">
+                            <i class="fa-solid fa-quote-left"></i> Quotes
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/habits" class="{{ 'active' if request.path == '/habits' else '' }}">
+                            <i class="fa-solid fa-check-double"></i> Habits
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
 
-    <footer>
-        <p>&copy; 2025 My Website</p>
-    </footer>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 </body>
 </html>

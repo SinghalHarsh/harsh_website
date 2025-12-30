@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Blog - Harsh Singhal{% endblock %}
+
+{% block content %}
+    <h1>Blog</h1>
+    <p style="color: #666;">Thoughts, tutorials, and analysis.</p>
+
+    <div class="blog-grid">
+        {% for post in posts %}
+        <a href="{{ post.link }}" target="_blank" class="blog-card">
+            <div class="blog-image">
+                <img src="{{ url_for('static', filename='images/blog/' + post.image) }}" alt="{{ post.title }}">
+            </div>
+            <div class="blog-content">
+                <div class="blog-meta">
+                    <span class="blog-date">{{ post.date }}</span>
+                    <span class="blog-category">{{ post.categories }}</span>
+                </div>
+                <h3 class="blog-title">{{ post.title }}</h3>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+{% endblock %}

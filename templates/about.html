@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}About - Harsh Singhal{% endblock %}
+
+{% block content %}
+<style>
+    .about-header {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+    .profile-img {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .about-intro {
+        font-size: 1.2rem;
+        font-style: italic;
+        color: #555;
+        border-left: 4px solid #4361ee;
+        padding-left: 20px;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+        color: #333;
+    }
+    
+    .experience-item {
+        margin-bottom: 30px;
+    }
+    .exp-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+    .company { font-weight: bold; font-size: 1.1rem; }
+    .role { font-style: italic; color: #666; }
+    .date { color: #888; font-size: 0.9rem; }
+    .exp-details ul {
+        margin-top: 10px;
+        padding-left: 20px;
+    }
+    .exp-details li {
+        margin-bottom: 8px;
+        color: #444;
+    }
+</style>
+
+<div class="about-header">
+    <img src="{{ url_for('static', filename='images/headshot.png') }}" alt="Harsh Singhal" class="profile-img">
+    <div class="about-intro">
+        "Skilled in developing machine learning models and gaining actionable insights from data through statistical analysis in order to make sound business decisions"
+    </div>
+</div>
+
+<h2 class="section-title">Experience</h2>
+
+<div class="experience-item">
+    <div class="exp-header">
+        <div>
+            <div class="company">Goldman Sachs, Bengaluru</div>
+            <div class="role">Associate</div>
+        </div>
+        <div class="date">Jan 2021 - Present</div>
+    </div>
+    <div class="exp-details">
+        <ul>
+            <li>Used settlement data to predict the probability of failure of any trade.</li>
+            <li>Built model using CatBoost and inspected SHAP values to generate commentary on top reasons for trade failure; created a Plotly dashboard for backtesting.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- You can add more experience items here based on your resume/portfolio -->
+
+{% endblock %}

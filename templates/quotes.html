@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Quotes - Harsh Singhal{% endblock %}
+
+{% block content %}
+    <h1>Daily Quotes</h1>
+    <p style="color: #666;">Inspiration for the day.</p>
+    
+    <div class="card">
+        <h3>Quote of the Day</h3>
+        <p style="font-size: 1.2rem; font-style: italic; margin: 20px 0;">"{{ quote.text }}"</p>
+        <div class="sub-text">- {{ quote.author }}</div>
+    </div>
+{% endblock %}

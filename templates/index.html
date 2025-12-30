@@ -1,8 +1,105 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - My Website{% endblock %}
+{% block title %}Home - Harsh Singhal{% endblock %}
 
 {% block content %}
-    <h1>Welcome to My Website</h1>
-    <p>This is a Flask website created with Python.</p>
+<style>
+    .hero-section {
+        font-family: 'Poppins', sans-serif;
+        padding: 40px 0;
+    }
+    .hero-text-hi {
+        font-size: 20px; 
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .hero-text-name {
+        font-size: 60px; 
+        font-weight: bold;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .hero-text-into {
+        font-size: 28px;
+        margin-top: 10px;
+    }
+    .highlight-red { color: #ff0000; }
+    .highlight-green { color: #008000; font-weight: bold; }
+    
+    .quote-box {
+        border: 1px solid black; 
+        padding: 20px; 
+        width: fit-content;
+        margin: 40px 0;
+        background: #fff;
+    }
+    
+    .btn-custom {
+        background-color: #000000;
+        color: white;
+        padding: 12px 24px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        transition: color 0.3s;
+    }
+    .btn-custom:hover {
+        color: #fff9d8;
+    }
+    
+    .social-links {
+        margin-top: 40px;
+        display: flex;
+        gap: 20px;
+    }
+    .social-links a {
+        color: #333;
+        font-size: 24px;
+        transition: color 0.3s;
+    }
+    .social-links a:hover {
+        color: #4361ee;
+    }
+</style>
+
+<div class="hero-section">
+    <p class="hero-text-hi">Hi There 👋,</p>
+    <p class="hero-text-name">I'm <span class="highlight-red">Harsh Singhal</span></p>
+    <p class="hero-text-into">I Am Into <span class="highlight-green">Data Science</span></p>
+    
+    <div class="quote-box">
+        <p style="font-weight: bold; font-size: 1.1rem; margin: 0;">
+            Give me the <span style="text-decoration:underline; text-decoration-style: dotted;">data</span>, <br>
+            and I will turn it into a <span style="font-size: 24px; text-decoration: underline;">STORY</span>
+        </p>
+    </div>
+    
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="/about" class="btn-custom">About Me</a>
+        <a href="{{ url_for('static', filename='Resume_Harsh_Singhal.pdf') }}" class="btn-custom" download>Download CV</a>
+    </div>
+
+    <div class="social-links">
+        <a href="https://www.linkedin.com/in/harshsinghal726/" target="_blank" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+        <a href="https://github.com/SinghalHarsh" target="_blank" title="GitHub"><i class="fa-brands fa-github"></i></a>
+        <a href="https://medium.com/@harshsinghal726" target="_blank" title="Medium"><i class="fa-brands fa-medium"></i></a>
+        <a href="https://www.youtube.com/channel/UCKH0vGj3x3kMpsFaXNvtnVg" target="_blank" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+        <a href="mailto:harshsinghal726@gmail.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
+        <a href="https://leetcode.com/harshsinghal726/" target="_blank" title="LeetCode"><i class="fa-solid fa-code"></i></a>
+    </div>
+</div>
+
+<div class="dashboard-cards" style="margin-top: 50px;">
+    {% for stat in stats %}
+    <div class="card">
+        <h3>{{ stat.title }}</h3>
+        <div class="value {{ stat.color }}">{{ stat.value }}</div>
+        <div class="sub-text {{ stat.color }}">{{ stat.sub_text }}</div>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}

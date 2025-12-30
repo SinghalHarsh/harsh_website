@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Habits - Harsh Singhal{% endblock %}
+
+{% block content %}
+    <h1>Habit Tracker</h1>
+    <p style="color: #666;">Consistency is key.</p>
+
+    <div class="dashboard-cards">
+        {% for habit in habits %}
+        <div class="card">
+            <h3>{{ habit.name }}</h3>
+            <div class="value {{ habit.color }}">{{ habit.streak }}</div>
+            <div class="sub-text">{{ habit.status }}</div>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
