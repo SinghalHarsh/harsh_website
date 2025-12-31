@@ -23,7 +23,7 @@
 
     {% if todays_reminders %}
         {% for r in todays_reminders %}
-        <div class="reminder-card">
+        <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}">
             <div class="reminder-title">
                 <i class="fa-solid fa-bell"></i> {{ r.title }}
                 {% if r.recurrence == 'yearly' %}
@@ -31,7 +31,8 @@
                 {% endif %}
             </div>
             <div class="reminder-action">
-                <i class="fa-solid fa-check"></i>
+                <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ today_date }}')"></i>
+                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ today_date }}')"></i>
             </div>
         </div>
         {% endfor %}
@@ -215,6 +216,27 @@
             location.reload();
         }
     }
+    
+        async function markComplete(id, date) {
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('date', date);
+            try {
+                const response = await fetch("/reminder/complete", {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const el = document.getElementById(`reminder-${id}`);
+                    if (el) el.classList.add('completed');
+                }
+            } catch (e) {
+                console.error(e);
+                location.reload();
+            }
+        }
 
     function createReminderItem(data) {
         const list = document.getElementById('reminderList');

@@ -1,7 +1,3 @@
-    # ...existing code...
-
-# Place this after app = Flask(__name__)
-# ...existing code...
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pymongo import MongoClient
@@ -19,6 +15,13 @@ app = Flask(__name__)
 @app.context_processor
 def inject_site_info():
     return {'site_name': 'Harsh Singhal'}
+
+
+@app.context_processor
+def inject_public_env():
+    # Only expose env vars explicitly marked as public to avoid leaking secrets.
+    public_env = {k: v for k, v in os.environ.items() if k.startswith('PUBLIC_')}
+    return {'env': public_env}
 
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
