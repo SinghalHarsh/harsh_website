@@ -56,8 +56,67 @@ def add_goal():
 
 @app.route('/')
 def home():
-    stats = list(db.dashboard_stats.find())
-    return render_template('index.html', stats=stats)
+    # Habits Stats
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    all_habits = list(db.habits.find({"active": True}))
+    habits_completed = 0
+    pending_habits = []
+    
+    for h in all_habits:
+        if today_str in h.get('history', []):
+            habits_completed += 1
+        else:
+            pending_habits.append(h)
+            
+    habits_total = len(all_habits)
+    
+    # Goals Stats
+    active_goals_cursor = db.goals.find({"completed": {"$ne": True}})
+    active_goals = list(active_goals_cursor)
+    active_goals_count = len(active_goals)
+    
+    # Reminders Today
+    reminders = list(db.reminders.find())
+    todays_reminders = []
+    
+    def is_skipped(reminder, target_date_str):
+        skipped = reminder.get('skipped_dates', [])
+        return target_date_str in skipped
+
+    for r in reminders:
+        if r.get('date') == today_str:
+             if not is_skipped(r, today_str):
+                 todays_reminders.append(r)
+        elif r.get('recurrence') == 'yearly' and r.get('date')[5:] == today_str[5:]:
+             if not is_skipped(r, today_str):
+                 todays_reminders.append(r)
+
+    reminders_today_count = len(todays_reminders)
+
+    # Quotes Logic (Random Quote)
+    text_quotes = list(db.quotes.find())
+    images_dir = os.path.join(app.static_folder, 'images', 'quotes')
+    image_quotes = []
+    if os.path.exists(images_dir):
+        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+    all_content = []
+    for q in text_quotes:
+        all_content.append({'type': 'text', 'data': q})
+    for img in image_quotes:
+        all_content.append({'type': 'image', 'filename': img})
+    
+    selected_quote = random.choice(all_content) if all_content else None
+
+    return render_template('index.html', 
+                           habits_completed=habits_completed, 
+                           habits_total=habits_total,
+                           pending_habits=pending_habits,
+                           active_goals_count=active_goals_count,
+                           active_goals=active_goals,
+                           reminders_today_count=reminders_today_count,
+                           todays_reminders=todays_reminders,
+                           selected_quote=selected_quote)
 
 @app.route('/about')
 def about():
@@ -437,18 +496,24 @@ def log_habit():
         date_str = datetime.now().strftime('%Y-%m-%d')
         
     habit = db.habits.find_one({"name": habit_name})
+    status = "unchanged"
     if habit:
         history = habit.get('history', [])
         if date_str in history:
             history.remove(date_str) # Toggle off
+            status = "removed"
         else:
             history.append(date_str) # Toggle on
+            status = "added"
             
         # Update DB
         db.habits.update_one(
             {"name": habit_name},
             {"$set": {"history": history}}
         )
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "action": status, "habit_name": habit_name})
         
     return redirect(url_for('habits'))
 

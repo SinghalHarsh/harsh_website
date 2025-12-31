@@ -4,109 +4,642 @@
 
 {% block content %}
 <style>
-    .interactive-container {
-        height: 80vh;
+    .dashboard-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    .hero-section {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+    }
+    .hero-subtitle {
+        font-size: 1.2rem;
+        color: #7f8c8d;
+        font-weight: 400;
+    }
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 30px;
+    }
+    .dash-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        text-decoration: none;
+        color: inherit;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
+        text-align: center;
+        border: 1px solid rgba(0,0,0,0.03);
         position: relative;
         overflow: hidden;
-        font-family: 'Poppins', sans-serif;
     }
-    
-    .name-wrapper {
-        font-size: 80px;
-        font-weight: 900;
-        color: #333;
-        cursor: default;
-        user-select: none;
+    .dash-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .dash-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
         display: flex;
-        gap: 20px; /* Space between first and last name */
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        background: #f8f9fa;
+    }
+    .dash-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #34495e;
+        margin-bottom: 5px;
+    }
+    .dash-stat {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 10px 0;
+    }
+    .dash-desc {
+        font-size: 0.95rem;
+        color: #95a5a6;
     }
     
-    .word {
-        display: flex;
-    }
+    /* Card Specific Colors */
+    .card-habits .dash-icon { color: #3498db; background: #eaf6fd; }
+    .card-habits:hover { border-bottom: 5px solid #3498db; }
     
-    .letter {
+    .card-goals .dash-icon { color: #e67e22; background: #fdf2e9; }
+    .card-goals:hover { border-bottom: 5px solid #e67e22; }
+    
+    .card-reminders .dash-icon { color: #9b59b6; background: #f5eef8; }
+    .card-reminders:hover { border-bottom: 5px solid #9b59b6; }
+
+    .card-quotes .dash-icon { color: #e74c3c; background: #fdedec; }
+    .card-quotes:hover { border-bottom: 5px solid #e74c3c; }
+
+    /* Interactive Name Styles */
+    .interactive-name {
         display: inline-block;
-        transition: transform 0.1s ease-out;
+        white-space: nowrap;
+    }
+    .interactive-letter {
+        display: inline-block;
+        color: #3498db; /* Different color for Harsh */
+        cursor: grab;
+        position: relative;
+        transition: color 0.3s;
+        user-select: none;
+    }
+    .interactive-letter:active {
+        cursor: grabbing;
+    }
+    /* Removed .returning transition to use JS animation */
+
+    /* Mini List Styles */
+    .card-link-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+    .mini-list-container {
+        margin-top: 15px;
+        width: 100%;
+        text-align: left;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        padding-top: 10px;
+        position: relative;
+        z-index: 2; /* Above the link overlay */
+    }
+    .mini-list-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #95a5a6;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .mini-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 0.9rem;
+        color: #34495e;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+        transition: opacity 0.3s ease;
+    }
+    .mini-list-item:last-child {
+        border-bottom: none;
+    }
+    .mini-check-btn {
+        background: none;
+        border: 1px solid #ddd;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #ddd;
+        transition: all 0.2s;
+    }
+    .mini-check-btn:hover {
+        background: #eaf6fd;
+        border-color: #3498db;
+        color: #3498db;
+    }
+    .mini-list-more {
+        font-size: 0.8rem;
+        color: #95a5a6;
+        text-align: center;
+        margin-top: 5px;
+    }
+    .reminder-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* Habit Circles */
+    .habit-circles-container {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+        position: relative;
+        z-index: 2;
+        flex-wrap: wrap;
+    }
+    .habit-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #e0e0e0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: transparent; /* Hide icon initially */
         position: relative;
     }
-    
-    .letter:hover {
-        color: #ff0000;
+    .habit-circle:hover {
+        border-color: #3498db;
+        background-color: #eaf6fd;
+        color: #3498db; /* Show icon */
+        transform: translateY(-2px);
     }
+    /* Tooltip logic using data-name */
+    .habit-circle::before {
+        content: attr(data-name);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(44, 62, 80, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+        pointer-events: none;
+        margin-bottom: 8px;
+        z-index: 10;
+    }
+    .habit-circle:hover::before {
+        opacity: 1;
+        visibility: visible;
+        bottom: 110%;
+    }
+    .habit-circle-more {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        border: 1px dashed #bdc3c7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        color: #7f8c8d;
+    }
+
+    /* Reminder Circles (Purple Theme) */
+    .reminder-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #e0e0e0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: transparent;
+        position: relative;
+    }
+    .reminder-circle:hover {
+        border-color: #9b59b6;
+        background-color: #f5eef8;
+        color: #9b59b6;
+        transform: translateY(-2px);
+    }
+    .reminder-circle::before {
+        content: attr(data-title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(44, 62, 80, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+        pointer-events: none;
+        margin-bottom: 8px;
+        z-index: 10;
+    }
+    .reminder-circle:hover::before {
+        opacity: 1;
+        visibility: visible;
+        bottom: 110%;
+    }
+
+    /* Goal Circles (Orange Theme) */
+    .goal-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #e0e0e0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: transparent;
+        position: relative;
+    }
+    .goal-circle:hover {
+        border-color: #e67e22;
+        background-color: #fdf2e9;
+        color: #e67e22;
+        transform: translateY(-2px);
+    }
+    .goal-circle::before {
+        content: attr(data-title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(44, 62, 80, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+        pointer-events: none;
+        margin-bottom: 8px;
+        z-index: 10;
+    }
+    .goal-circle:hover::before {
+        opacity: 1;
+        visibility: visible;
+        bottom: 110%;
+    }
+
 </style>
 
-<div class="interactive-container" id="container">
-    <div class="name-wrapper">
-        <div class="word">
-            <span class="letter">H</span>
-            <span class="letter">a</span>
-            <span class="letter">r</span>
-            <span class="letter">s</span>
-            <span class="letter">h</span>
+<div class="dashboard-container">
+    <div class="hero-section">
+        <h1 class="hero-title">Welcome back, <span class="interactive-name">{% for letter in "Harsh" %}<span class="interactive-letter">{{ letter }}</span>{% endfor %}</span>!</h1>
+        <p class="hero-subtitle">Here's what's happening today.</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Habits Card -->
+        <div class="dash-card card-habits">
+            <a href="/habits" class="card-link-overlay"></a>
+            <div class="dash-icon"><i class="fa-solid fa-check-double"></i></div>
+            <div class="dash-title">Habits</div>
+            <div class="dash-stat" id="habit-stat">{{ habits_completed }}/{{ habits_total }}</div>
+            <div class="dash-desc">Completed Today</div>
+
+            {% if pending_habits %}
+            <div class="mini-list-container" style="border-top: none; padding-top: 5px;">
+                <div class="habit-circles-container">
+                    {% for habit in pending_habits[:5] %}
+                    <div class="habit-circle habit-item" 
+                         data-name="{{ habit.name }}" 
+                         onclick="toggleHabit(event, '{{ habit.name }}')"
+                         title="{{ habit.name }}">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    {% endfor %}
+                    {% if pending_habits|length > 5 %}
+                    <div class="habit-circle-more" title="{{ pending_habits|length - 5 }} more">
+                        +{{ pending_habits|length - 5 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        <div class="word">
-            <span class="letter">S</span>
-            <span class="letter">i</span>
-            <span class="letter">n</span>
-            <span class="letter">g</span>
-            <span class="letter">h</span>
-            <span class="letter">a</span>
-            <span class="letter">l</span>
+
+        <!-- Goals Card -->
+        <div class="dash-card card-goals">
+            <a href="/goals" class="card-link-overlay"></a>
+            <div class="dash-icon"><i class="fa-solid fa-bullseye"></i></div>
+            <div class="dash-title">Goals</div>
+            <div class="dash-stat" id="goal-stat">{{ active_goals_count }}</div>
+            <div class="dash-desc">Active Goals</div>
+
+            {% if active_goals %}
+            <div class="mini-list-container" style="border-top: none; padding-top: 5px;">
+                <div class="habit-circles-container">
+                    {% for goal in active_goals[:5] %}
+                    <div class="goal-circle goal-item" 
+                         data-title="{{ goal.title }}" 
+                         onclick="completeGoal(event, '{{ goal._id }}')"
+                         title="{{ goal.title }}">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    {% endfor %}
+                    {% if active_goals|length > 5 %}
+                    <div class="habit-circle-more" title="{{ active_goals|length - 5 }} more">
+                        +{{ active_goals|length - 5 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
+
+        <!-- Reminders Card -->
+        <div class="dash-card card-reminders">
+            <a href="/reminder" class="card-link-overlay"></a>
+            <div class="dash-icon"><i class="fa-solid fa-bell"></i></div>
+            <div class="dash-title">Reminders</div>
+            <div class="dash-stat" id="reminder-stat">{{ reminders_today_count }}</div>
+            <div class="dash-desc">Tasks for Today</div>
+
+            {% if todays_reminders %}
+            <div class="mini-list-container" style="border-top: none; padding-top: 5px;">
+                <div class="habit-circles-container">
+                    {% for reminder in todays_reminders[:5] %}
+                    <div class="reminder-circle reminder-item" 
+                         data-title="{{ reminder.title }}" 
+                         onclick="completeReminder(event, '{{ reminder._id }}', '{{ reminder.date }}')"
+                         title="{{ reminder.title }}">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    {% endfor %}
+                    {% if todays_reminders|length > 5 %}
+                    <div class="habit-circle-more" title="{{ todays_reminders|length - 5 }} more">
+                        +{{ todays_reminders|length - 5 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quotes Card -->
+        <a href="/quotes" class="dash-card card-quotes" style="justify-content: center;">
+            {% if selected_quote %}
+                {% if selected_quote.type == 'text' %}
+                    <div class="dash-icon" style="margin-bottom: 10px;"><i class="fa-solid fa-quote-left"></i></div>
+                    <div style="font-size: 1.1rem; font-style: italic; color: #34495e; margin-bottom: 10px; line-height: 1.4;">
+                        "{{ selected_quote.data.text }}"
+                    </div>
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #7f8c8d;">
+                        - {{ selected_quote.data.author }}
+                    </div>
+                {% elif selected_quote.type == 'image' %}
+                    <img src="{{ url_for('static', filename='images/quotes/' + selected_quote.filename) }}" 
+                         alt="Quote" 
+                         style="max-width: 100%; max-height: 180px; border-radius: 8px; object-fit: contain;">
+                {% endif %}
+            {% else %}
+                <div class="dash-icon"><i class="fa-solid fa-quote-left"></i></div>
+                <div class="dash-title">Quotes</div>
+                <div class="dash-desc">No quotes available</div>
+            {% endif %}
+        </a>
     </div>
 </div>
 
 <script>
-    const container = document.getElementById('container');
-    const letters = document.querySelectorAll('.letter');
-    
-    // Configuration
-    const repelRadius = 150; // Distance within which letters react
-    const repelStrength = 100; // How far they move
-    
-    // Store original positions (relative to viewport) isn't needed if we use transform
-    // We just calculate vector from mouse to letter center
-    
-    document.addEventListener('mousemove', (e) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+// Interactive Name Logic
+const letters = document.querySelectorAll('.interactive-letter');
+
+letters.forEach(letter => {
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+
+    letter.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        letter.classList.remove('returning');
+        letter.style.zIndex = 100;
         
-        letters.forEach(letter => {
-            const rect = letter.getBoundingClientRect();
-            const letterCenterX = rect.left + rect.width / 2;
-            const letterCenterY = rect.top + rect.height / 2;
+        // Get current transform values or default to 0
+        const style = window.getComputedStyle(letter);
+        const matrix = new WebKitCSSMatrix(style.transform);
+        initialX = matrix.m41;
+        initialY = matrix.m42;
+        
+        startX = e.clientX - initialX;
+        startY = e.clientY - initialY;
+        
+        letter.setPointerCapture(e.pointerId);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const currentX = e.clientX - startX;
+        const currentY = e.clientY - startY;
+        letter.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        // Custom JS Animation for "Watery" Return
+        const style = window.getComputedStyle(letter);
+        const matrix = new WebKitCSSMatrix(style.transform);
+        const startXVal = matrix.m41;
+        const startYVal = matrix.m42;
+        
+        const startTime = performance.now();
+        const duration = 5000; // 5 seconds for even slower return
+        
+        function animate(time) {
+            let timeFraction = (time - startTime) / duration;
+            if (timeFraction > 1) timeFraction = 1;
             
-            const dx = mouseX - letterCenterX;
-            const dy = mouseY - letterCenterY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            // Ease Out Cubic
+            const progress = 1 - Math.pow(1 - timeFraction, 3);
             
-            if (distance < repelRadius) {
-                // Calculate repulsion vector
-                // The closer the mouse, the stronger the push
-                const force = (repelRadius - distance) / repelRadius;
-                const angle = Math.atan2(dy, dx);
-                
-                // Move AWAY from mouse
-                const moveX = -Math.cos(angle) * force * repelStrength;
-                const moveY = -Math.sin(angle) * force * repelStrength;
-                
-                letter.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            // Linear path to home
+            let newX = startXVal * (1 - progress);
+            let newY = startYVal * (1 - progress);
+            
+            // Add "Wavy" drift
+            // Sine wave that decays as it gets closer to home
+            // Frequency: 3 full waves (6 * PI)
+            // Amplitude: 30px max, decaying with (1-progress)
+            const wave = Math.sin(progress * Math.PI * 6) * 30 * (1 - progress);
+            
+            // Apply wave to X axis (side-to-side drift)
+            newX += wave;
+            
+            letter.style.transform = `translate(${newX}px, ${newY}px)`;
+            
+            if (timeFraction < 1) {
+                requestAnimationFrame(animate);
             } else {
-                // Reset
+                letter.style.zIndex = '';
                 letter.style.transform = 'translate(0, 0)';
             }
-        });
+        }
+        
+        requestAnimationFrame(animate);
     });
+});
+
+function toggleHabit(event, habitName) {
+    event.preventDefault(); // Prevent link click
+    event.stopPropagation();
     
-    // Reset on mouse leave
-    document.addEventListener('mouseleave', () => {
-        letters.forEach(letter => {
-            letter.style.transform = 'translate(0, 0)';
-        });
-    });
+    const btn = event.currentTarget;
+    const item = btn.closest('.habit-item');
+    
+    fetch('/habits/log', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `habit_name=${encodeURIComponent(habitName)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Animate removal
+            item.style.opacity = '0';
+            setTimeout(() => {
+                item.remove();
+                // Update counter
+                const statEl = document.getElementById('habit-stat');
+                const parts = statEl.innerText.split('/');
+                const completed = parseInt(parts[0]) + 1;
+                statEl.innerText = `${completed}/${parts[1]}`;
+            }, 300);
+        }
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+function completeReminder(event, id, date) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const btn = event.currentTarget;
+    const item = btn.closest('.reminder-item');
+    
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('mode', 'instance');
+    formData.append('date', date);
+    
+    fetch('/reminder/delete', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            item.style.opacity = '0';
+            setTimeout(() => {
+                item.remove();
+                const statEl = document.getElementById('reminder-stat');
+                const current = parseInt(statEl.innerText);
+                if (!isNaN(current) && current > 0) {
+                    statEl.innerText = current - 1;
+                }
+            }, 300);
+        }
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+function completeGoal(event, id) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const btn = event.currentTarget;
+    const item = btn.closest('.goal-item');
+    
+    const formData = new FormData();
+    formData.append('goal_id', id);
+    
+    fetch('/goals/complete', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            item.style.opacity = '0';
+            setTimeout(() => {
+                item.remove();
+                const statEl = document.getElementById('goal-stat');
+                const current = parseInt(statEl.innerText);
+                if (!isNaN(current) && current > 0) {
+                    statEl.innerText = current - 1;
+                }
+            }, 300);
+        }
+    })
+    .catch(err => console.error('Error:', err));
+}
 </script>
 {% endblock %}
