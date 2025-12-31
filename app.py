@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pymongo import MongoClient
+from pymongo.errors import ConfigurationError
 from dotenv import load_dotenv
 import os
 import random
@@ -25,7 +26,10 @@ def inject_public_env():
 
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
-db = client.get_database()
+try:
+    db = client.get_database()
+except ConfigurationError:
+    db = client.get_database("harsh_website")
 
 
 
