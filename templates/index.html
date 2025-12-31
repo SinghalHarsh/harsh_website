@@ -339,6 +339,36 @@
         bottom: 110%;
     }
 
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 20px 15px;
+        }
+        .hero-section {
+            margin-bottom: 30px;
+        }
+        .hero-title {
+            font-size: 2rem;
+        }
+        .hero-subtitle {
+            font-size: 1rem;
+        }
+        .dashboard-grid {
+            gap: 15px;
+            grid-template-columns: 1fr; /* Force single column on mobile */
+        }
+        .dash-card {
+            padding: 20px;
+        }
+        .dash-stat {
+            font-size: 2rem;
+        }
+        /* Make touch targets larger on mobile */
+        .habit-circle, .goal-circle, .reminder-circle, .habit-circle-more {
+            width: 40px;
+            height: 40px;
+        }
+    }
 </style>
 
 <div class="dashboard-container">
@@ -468,32 +498,43 @@ letters.forEach(letter => {
     let isDragging = false;
     let startX, startY, initialX, initialY;
 
-    letter.addEventListener('mousedown', (e) => {
+    const handleStart = (e) => {
         isDragging = true;
         letter.classList.remove('returning');
         letter.style.zIndex = 100;
         
+        // Get coordinates for mouse or touch
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
         // Get current transform values or default to 0
         const style = window.getComputedStyle(letter);
         const matrix = new WebKitCSSMatrix(style.transform);
         initialX = matrix.m41;
         initialY = matrix.m42;
         
-        startX = e.clientX - initialX;
-        startY = e.clientY - initialY;
+        startX = clientX - initialX;
+        startY = clientY - initialY;
         
-        letter.setPointerCapture(e.pointerId);
-    });
+        if (e.type === 'mousedown') {
+            letter.setPointerCapture(e.pointerId);
+        }
+    };
 
-    window.addEventListener('mousemove', (e) => {
+    const handleMove = (e) => {
         if (!isDragging) return;
-        e.preventDefault();
-        const currentX = e.clientX - startX;
-        const currentY = e.clientY - startY;
-        letter.style.transform = `translate(${currentX}px, ${currentY}px)`;
-    });
+        // Prevent scrolling while dragging on mobile
+        if (e.cancelable && e.type === 'touchmove') e.preventDefault();
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    window.addEventListener('mouseup', () => {
+        const currentX = clientX - startX;
+        const currentY = clientY - startY;
+        letter.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    };
+
+    const handleEnd = () => {
         if (!isDragging) return;
         isDragging = false;
         
@@ -518,9 +559,6 @@ letters.forEach(letter => {
             let newY = startYVal * (1 - progress);
             
             // Add "Wavy" drift
-            // Sine wave that decays as it gets closer to home
-            // Frequency: 3 full waves (6 * PI)
-            // Amplitude: 30px max, decaying with (1-progress)
             const wave = Math.sin(progress * Math.PI * 6) * 30 * (1 - progress);
             
             // Apply wave to X axis (side-to-side drift)
@@ -537,7 +575,17 @@ letters.forEach(letter => {
         }
         
         requestAnimationFrame(animate);
-    });
+    };
+
+    // Mouse Events
+    letter.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    // Touch Events
+    letter.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
 });
 
 function toggleHabit(event, habitName) {
