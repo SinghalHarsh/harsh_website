@@ -245,6 +245,14 @@
     display: flex;
     align-items: center;
     gap: 7px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+}
+
+.reminder-card:hover .reminder-action {
+    opacity: 1;
+    pointer-events: auto;
 }
 .reminder-action .fa-check {
     color: #38b2ac;
