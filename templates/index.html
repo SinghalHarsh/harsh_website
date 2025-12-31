@@ -1,105 +1,112 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - Harsh Singhal{% endblock %}
+{% block title_wrapper %}{{ site_name }}{% endblock %}
 
 {% block content %}
 <style>
-    .hero-section {
-        font-family: 'Poppins', sans-serif;
-        padding: 40px 0;
-    }
-    .hero-text-hi {
-        font-size: 20px; 
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    .hero-text-name {
-        font-size: 60px; 
-        font-weight: bold;
-        margin: 0;
-        line-height: 1.2;
-    }
-    .hero-text-into {
-        font-size: 28px;
-        margin-top: 10px;
-    }
-    .highlight-red { color: #ff0000; }
-    .highlight-green { color: #008000; font-weight: bold; }
-    
-    .quote-box {
-        border: 1px solid black; 
-        padding: 20px; 
-        width: fit-content;
-        margin: 40px 0;
-        background: #fff;
-    }
-    
-    .btn-custom {
-        background-color: #000000;
-        color: white;
-        padding: 12px 24px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-        transition: color 0.3s;
-    }
-    .btn-custom:hover {
-        color: #fff9d8;
-    }
-    
-    .social-links {
-        margin-top: 40px;
+    .interactive-container {
+        height: 80vh;
         display: flex;
-        gap: 20px;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        font-family: 'Poppins', sans-serif;
     }
-    .social-links a {
+    
+    .name-wrapper {
+        font-size: 80px;
+        font-weight: 900;
         color: #333;
-        font-size: 24px;
-        transition: color 0.3s;
+        cursor: default;
+        user-select: none;
+        display: flex;
+        gap: 20px; /* Space between first and last name */
     }
-    .social-links a:hover {
-        color: #4361ee;
+    
+    .word {
+        display: flex;
+    }
+    
+    .letter {
+        display: inline-block;
+        transition: transform 0.1s ease-out;
+        position: relative;
+    }
+    
+    .letter:hover {
+        color: #ff0000;
     }
 </style>
 
-<div class="hero-section">
-    <p class="hero-text-hi">Hi There 👋,</p>
-    <p class="hero-text-name">I'm <span class="highlight-red">Harsh Singhal</span></p>
-    <p class="hero-text-into">I Am Into <span class="highlight-green">Data Science</span></p>
-    
-    <div class="quote-box">
-        <p style="font-weight: bold; font-size: 1.1rem; margin: 0;">
-            Give me the <span style="text-decoration:underline; text-decoration-style: dotted;">data</span>, <br>
-            and I will turn it into a <span style="font-size: 24px; text-decoration: underline;">STORY</span>
-        </p>
-    </div>
-    
-    <div style="display: flex; gap: 15px; align-items: center;">
-        <a href="/about" class="btn-custom">About Me</a>
-        <a href="{{ url_for('static', filename='Resume_Harsh_Singhal.pdf') }}" class="btn-custom" download>Download CV</a>
-    </div>
-
-    <div class="social-links">
-        <a href="https://www.linkedin.com/in/harshsinghal726/" target="_blank" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
-        <a href="https://github.com/SinghalHarsh" target="_blank" title="GitHub"><i class="fa-brands fa-github"></i></a>
-        <a href="https://medium.com/@harshsinghal726" target="_blank" title="Medium"><i class="fa-brands fa-medium"></i></a>
-        <a href="https://www.youtube.com/channel/UCKH0vGj3x3kMpsFaXNvtnVg" target="_blank" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
-        <a href="mailto:harshsinghal726@gmail.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
-        <a href="https://leetcode.com/harshsinghal726/" target="_blank" title="LeetCode"><i class="fa-solid fa-code"></i></a>
+<div class="interactive-container" id="container">
+    <div class="name-wrapper">
+        <div class="word">
+            <span class="letter">H</span>
+            <span class="letter">a</span>
+            <span class="letter">r</span>
+            <span class="letter">s</span>
+            <span class="letter">h</span>
+        </div>
+        <div class="word">
+            <span class="letter">S</span>
+            <span class="letter">i</span>
+            <span class="letter">n</span>
+            <span class="letter">g</span>
+            <span class="letter">h</span>
+            <span class="letter">a</span>
+            <span class="letter">l</span>
+        </div>
     </div>
 </div>
 
-<div class="dashboard-cards" style="margin-top: 50px;">
-    {% for stat in stats %}
-    <div class="card">
-        <h3>{{ stat.title }}</h3>
-        <div class="value {{ stat.color }}">{{ stat.value }}</div>
-        <div class="sub-text {{ stat.color }}">{{ stat.sub_text }}</div>
-    </div>
-    {% endfor %}
-</div>
+<script>
+    const container = document.getElementById('container');
+    const letters = document.querySelectorAll('.letter');
+    
+    // Configuration
+    const repelRadius = 150; // Distance within which letters react
+    const repelStrength = 100; // How far they move
+    
+    // Store original positions (relative to viewport) isn't needed if we use transform
+    // We just calculate vector from mouse to letter center
+    
+    document.addEventListener('mousemove', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        letters.forEach(letter => {
+            const rect = letter.getBoundingClientRect();
+            const letterCenterX = rect.left + rect.width / 2;
+            const letterCenterY = rect.top + rect.height / 2;
+            
+            const dx = mouseX - letterCenterX;
+            const dy = mouseY - letterCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < repelRadius) {
+                // Calculate repulsion vector
+                // The closer the mouse, the stronger the push
+                const force = (repelRadius - distance) / repelRadius;
+                const angle = Math.atan2(dy, dx);
+                
+                // Move AWAY from mouse
+                const moveX = -Math.cos(angle) * force * repelStrength;
+                const moveY = -Math.sin(angle) * force * repelStrength;
+                
+                letter.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            } else {
+                // Reset
+                letter.style.transform = 'translate(0, 0)';
+            }
+        });
+    });
+    
+    // Reset on mouse leave
+    document.addEventListener('mouseleave', () => {
+        letters.forEach(letter => {
+            letter.style.transform = 'translate(0, 0)';
+        });
+    });
+</script>
 {% endblock %}

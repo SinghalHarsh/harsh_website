@@ -73,19 +73,42 @@ habits = [
         "name": "Reading",
         "streak": "5 Days",
         "status": "Streak",
-        "color": "text-green"
+        "color": "text-green",
+        "active": True,
+        "history": [
+            "2025-01-01", "2025-01-02", "2025-01-05", "2025-01-06", "2025-01-07",
+            "2025-02-10", "2025-02-11", "2025-02-12", "2025-03-01", "2025-03-05",
+            "2025-12-25", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29"
+        ]
     },
     {
         "name": "Coding",
         "streak": "12 Days",
         "status": "Streak",
-        "color": "text-blue"
+        "color": "text-blue",
+        "active": True,
+        "history": [
+            "2025-01-10", "2025-01-11", "2025-01-12", "2025-01-13", "2025-01-14",
+            "2025-04-01", "2025-04-02", "2025-04-03", "2025-05-20", "2025-05-21"
+        ]
     },
     {
         "name": "Exercise",
         "streak": "0 Days",
         "status": "Missed today",
-        "color": "text-red"
+        "color": "text-red",
+        "active": True,
+        "history": [
+            "2025-01-01", "2025-01-03", "2025-01-05", "2025-01-07", "2025-01-09"
+        ]
+    },
+    {
+        "name": "Meditation",
+        "streak": "0 Days",
+        "status": "Inactive",
+        "color": "text-gray",
+        "active": False,
+        "history": []
     }
 ]
 
@@ -116,16 +139,59 @@ dashboard_stats = [
     }
 ]
 
+reminders = [
+    {
+        "title": "Project Deadline",
+        "date": "2025-12-30",
+        "type": "Work"
+    },
+    {
+        "title": "Mom's Birthday",
+        "date": "2026-01-15",
+        "type": "Personal"
+    },
+    {
+        "title": "Doctor Appointment",
+        "date": "2026-02-01",
+        "type": "Health"
+    }
+]
+
+goals = [
+    {
+        "title": "Learn Rust",
+        "status": "In Progress",
+        "deadline": "2026-06-01",
+        "progress": 30
+    },
+    {
+        "title": "Run a Marathon",
+        "status": "Not Started",
+        "deadline": "2026-12-01",
+        "progress": 0
+    },
+    {
+        "title": "Read 24 Books",
+        "status": "In Progress",
+        "deadline": "2026-12-31",
+        "progress": 15
+    }
+]
+
 # Clear existing collections
 db.blogs.drop()
 db.quotes.drop()
 db.habits.drop()
 db.dashboard_stats.drop()
+db.reminders.drop()
+db.goals.drop()
 
 # Insert new data
 db.blogs.insert_many(blogs)
 db.quotes.insert_many(quotes)
 db.habits.insert_many(habits)
 db.dashboard_stats.insert_many(dashboard_stats)
+db.reminders.insert_many(reminders)
+db.goals.insert_many(goals)
 
 print("Database seeded successfully!")

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
 
-{% block title %}About - Harsh Singhal{% endblock %}
+{% block title %}About{% endblock %}
 
 {% block content %}
 <style>
@@ -27,12 +28,12 @@
     }
     
     .section-title {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: bold;
-        margin-top: 40px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
         color: #333;
     }
     
@@ -56,6 +57,8 @@
         color: #444;
     }
 </style>
+
+{{ page_header('About Me', 'Software Engineer & Creator') }}
 
 <div class="about-header">
     <img src="{{ url_for('static', filename='images/headshot.png') }}" alt="Harsh Singhal" class="profile-img">

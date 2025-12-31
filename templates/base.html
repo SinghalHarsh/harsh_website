@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}My Website{% endblock %}</title>
+    <title>{% block title_wrapper %}{% block title %}{% endblock %} | {{ site_name }}{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,9 +13,9 @@
 <body>
     <!-- Top Bar -->
     <header class="topbar">
-        <div class="logo">
-            <i class="fa-solid fa-code"></i> Harsh Singhal
-        </div>
+        <a href="/" class="logo" style="text-decoration: none;">
+            <i class="fa-solid fa-code"></i> {{ site_name }}
+        </a>
         <div class="topbar-actions">
             <a href="https://www.linkedin.com/in/harshsinghal726/" target="_blank" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
             <a href="https://github.com/SinghalHarsh" target="_blank" title="GitHub"><i class="fa-brands fa-github"></i></a>
@@ -46,6 +48,11 @@
                     <li>
                         <a href="/reminder" class="{{ 'active' if request.path == '/reminder' else '' }}">
                             <i class="fa-solid fa-bell"></i> Reminders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/goals" class="{{ 'active' if request.path == '/goals' else '' }}">
+                            <i class="fa-solid fa-bullseye"></i> Goals
                         </a>
                     </li>
                     <li>

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
+
+{% block title %}Goals{% endblock %}
+
+{% block content %}
+<style>
+    .goals-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Poppins', sans-serif;
+    }
+    .goal-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    .goal-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .goal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .goal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+    }
+    .goal-status {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .status-in-progress { background: #e6fffa; color: #38b2ac; }
+    .status-not-started { background: #fff5f5; color: #fc8181; }
+    .status-completed { background: #f0fff4; color: #48bb78; }
+    
+    .goal-meta {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+    }
+    
+    .progress-bar-bg {
+        width: 100%;
+        height: 10px;
+        background: #edf2f7;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: #333;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+    }
+    .progress-text {
+        text-align: right;
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
+    }
+</style>
+
+{{ page_header('My Goals', 'Track your progress.') }}
+
+<div class="goals-container">
+    
+    {% if goals %}
+        {% for goal in goals %}
+        <div class="goal-card">
+            <div class="goal-header">
+                <div class="goal-title">{{ goal.title }}</div>
+                <span class="goal-status {{ 'status-in-progress' if goal.status == 'In Progress' else 'status-not-started' }}">
+                    {{ goal.status }}
+                </span>
+            </div>
+            <div class="goal-meta">
+                <i class="fa-regular fa-calendar"></i> Deadline: {{ goal.deadline }}
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: {{ goal.progress }}%;"></div>
+                </div>
+                <div class="progress-text">{{ goal.progress }}% Completed</div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No goals set yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

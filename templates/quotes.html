@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
 
-{% block title %}Quotes - Harsh Singhal{% endblock %}
+{% block title %}Quotes{% endblock %}
 
 {% block content %}
-    <h1>Daily Quotes</h1>
-    <p style="color: #666;">Inspiration for the day.</p>
+    {{ page_header('Daily Quotes', 'Inspiration for the day.') }}
     
     <div class="card">
         <h3>Quote of the Day</h3>

@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
 
-{% block title %}Blog - Harsh Singhal{% endblock %}
+{% block title %}Blog{% endblock %}
 
 {% block content %}
-    <h1>Blog</h1>
-    <p style="color: #666;">Thoughts, tutorials, and analysis.</p>
+    {{ page_header('Blog', 'Thoughts, tutorials, and analysis.') }}
 
     <div class="blog-grid">
         {% for post in posts %}
