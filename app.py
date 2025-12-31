@@ -25,13 +25,6 @@ def inject_public_env():
     return {'env': public_env}
 
 mongo_uri = os.getenv('MONGO_URI')
-if not mongo_uri:
-    # Fallback for local development if not set, or raise error in production
-    if os.environ.get('FLASK_ENV') == 'development':
-        print("WARNING: MONGO_URI not set. Using default localhost.")
-    else:
-        print("CRITICAL: MONGO_URI environment variable is not set.")
-
 client = MongoClient(mongo_uri)
 try:
     db = client.get_database()
@@ -241,6 +234,13 @@ def delete_reminder():
         
     return redirect(url_for('reminder'))
 
+@app.route('/goals/delete', methods=['POST'])
+def delete_goal():
+    goal_id = request.form.get('goal_id')
+    if goal_id:
+        db.goals.delete_one({'_id': ObjectId(goal_id)})
+    return redirect(url_for('goals'))
+
 @app.route('/quotes')
 def quotes():
     # 1. Get text quotes from DB
@@ -249,12 +249,10 @@ def quotes():
     # 2. Get image quotes from static folder
     images_dir = os.path.join(app.static_folder, 'images', 'quotes')
     image_quotes = []
-@app.route('/goals/delete', methods=['POST'])
-def delete_goal():
-    goal_id = request.form.get('goal_id')
-    if goal_id:
-        db.goals.delete_one({'_id': ObjectId(goal_id)})
-    return redirect(url_for('goals'))
+    if os.path.exists(images_dir):
+        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+    all_content = []
     for q in text_quotes:
         all_content.append({'type': 'text', 'data': q})
         
