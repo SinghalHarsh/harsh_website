@@ -21,58 +21,50 @@
         <span style="font-size: 0.9rem; color: #7f8c8d;">{{ today_date }}</span>
     </div>
 
-    <div class="habit-list" style="margin-bottom: 40px;">
-        {% if todays_reminders %}
-            {% for r in todays_reminders %}
-            <div class="habit-list-item" style="border-left: 4px solid #2ecc71;">
-                <div class="habit-info-row" style="display: flex; align-items: center; gap: 20px;">
-                    <span class="habit-name" style="font-size: 1.1rem; font-weight: 600;">{{ r.title }}</span>
-                    {% if r.recurrence == 'yearly' %}
-                    <span class="suggestion-tag active">Yearly</span>
-                    {% endif %}
-                </div>
-                <div class="habit-meta" style="display: flex; align-items: center; gap: 10px;">
-                    <button onclick="confirmDelete('{{ r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')" class="delete-btn" style="color: #2ecc71; border-color: #2ecc71;">
-                        <i class="fa-solid fa-check"></i>
-                    </button>
-                </div>
+    {% if todays_reminders %}
+        {% for r in todays_reminders %}
+        <div class="reminder-card">
+            <div class="reminder-title">
+                <i class="fa-solid fa-bell"></i> {{ r.title }}
+                {% if r.recurrence == 'yearly' %}
+                <span class="reminder-badge">Yearly</span>
+                {% endif %}
             </div>
-            {% endfor %}
-        {% else %}
-            <p style="color: #999; font-style: italic;">No reminders for today.</p>
-        {% endif %}
-    </div>
+            <div class="reminder-action">
+                <i class="fa-solid fa-check"></i>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: #999; font-style: italic;">No reminders for today.</p>
+    {% endif %}
     
     <!-- Upcoming Reminders List -->
     <div class="section-header">
         <h2>Upcoming Reminders</h2>
     </div>
     
-    <div class="habit-list" id="reminderList">
-        {% if upcoming_reminders %}
-            {% for r in upcoming_reminders %}
-            <div class="habit-list-item" id="reminder-{{ r.original_id if r.original_id else r._id }}">
-                <div class="habit-info-row" style="display: flex; align-items: center; gap: 15px;">
-                    <span class="habit-name" style="font-size: 1.1rem; font-weight: 600;">{{ r.title }}</span>
-                    <span class="suggestion-tag" style="font-size: 0.95rem; background: #eef2ff; color: #333;">{{ r.date }}</span>
-                    {% if r.recurrence == 'yearly' %}
-                    <span class="suggestion-tag active">Yearly</span>
-                    {% endif %}
-                    {% if r.remind_days_before %}
-                    <span class="suggestion-tag" style="background:#fff3cd; color:#856404; font-size: 0.95rem;">{{ r.remind_days_before }}d before</span>
-                    {% endif %}
-                </div>
-                <div class="habit-meta">
-                    <button onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')" class="delete-btn">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
+    {% if upcoming_reminders %}
+        {% for r in upcoming_reminders %}
+        <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}">
+            <div class="reminder-title">
+                <i class="fa-solid fa-bell"></i> {{ r.title }}
+                <span class="reminder-date">{{ r.date }}</span>
+                {% if r.recurrence == 'yearly' %}
+                <span class="reminder-badge">Yearly</span>
+                {% endif %}
+                {% if r.remind_days_before %}
+                <span class="reminder-badge" style="background:#fff3cd; color:#856404;">{{ r.remind_days_before }}d before</span>
+                {% endif %}
             </div>
-            {% endfor %}
-        {% else %}
-            <p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>
-        {% endif %}
-    </div>
+            <div class="reminder-action">
+                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')"></i>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>
+    {% endif %}
 
     <!-- Calendar View -->
     <div class="insights-wrapper" style="margin-top: 40px;">
@@ -144,7 +136,7 @@
                         </select>
                     </div>
                     <div style="flex: 1; min-width: 150px; display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="reminderDays" placeholder="Days before" style="width: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        <input type="number" id="reminderDays" placeholder="Days before" style="width: 160px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
                         <button type="button" onclick="addReminder()" class="btn-primary" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>

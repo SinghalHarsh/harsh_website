@@ -1,3 +1,8 @@
+    # ...existing code...
+
+# Place this after app = Flask(__name__)
+# ...existing code...
+
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -5,6 +10,7 @@ import os
 import random
 from datetime import datetime, timedelta
 import calendar
+from bson.objectid import ObjectId
 
 load_dotenv()
 
@@ -17,6 +23,29 @@ def inject_site_info():
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
 db = client.get_database()
+
+
+
+@app.route('/goals/add', methods=['POST'])
+def add_goal():
+    title = request.form.get('title')
+    error = None
+    if not title:
+        error = 'Goal title is required.'
+    else:
+        try:
+            db.goals.insert_one({
+                'title': title,
+                'created_at': datetime.now()
+            })
+        except Exception as e:
+            error = f'Failed to add goal: {str(e)}'
+    if error:
+        # Re-render goals page with error message
+        goals_list = list(db.goals.find())
+        return render_template('goals.html', goals=goals_list, goal_error=error)
+    return redirect(url_for('goals'))
+
 
 @app.route('/')
 def home():
@@ -52,57 +81,40 @@ def reminder():
             if not is_skipped(r, today_str):
                 todays_reminders.append(r)
             
-    # Improved upcoming logic to include recurring instances
+    # Show reminders where:
+    # - The event date is within the next 5 days (regardless of remind_days_before)
+    # - OR the notification date (event - remind_days_before) is within the next 'remind_days_before' days from today
     upcoming_reminders = []
-    
-    # 1. Add future one-time reminders
+    window_days = 5
+    window_end = today_date + timedelta(days=window_days)
     for r in reminders:
-        if not r.get('recurrence') and r.get('date') > today_str:
-            if not is_skipped(r, r.get('date')):
-                upcoming_reminders.append(r)
-                
+        event_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
+        remind_days = int(r.get('remind_days_before', 0))
+        notify_date = event_date - timedelta(days=remind_days)
 
-    # 2. Add upcoming recurring reminders (for the next 365 days)
-    for r in reminders:
+        # For recurring yearly reminders, adjust the year if needed
         if r.get('recurrence') == 'yearly':
-            # Calculate next occurrence
-            r_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
-            # Check this year
-            this_year_date = r_date.replace(year=today_date.year)
-            if this_year_date.date() > today_date.date():
-                date_str = this_year_date.strftime('%Y-%m-%d')
-                if date_str != today_str and not is_skipped(r, date_str):
-                    # Create a display copy
-                    r_copy = r.copy()
-                    r_copy['date'] = date_str
-                    r_copy['original_id'] = str(r['_id']) # Keep ref
-                    upcoming_reminders.append(r_copy)
-            # Check next year (to ensure we see full year ahead)
-            next_year_date = r_date.replace(year=today_date.year + 1)
-            date_str = next_year_date.strftime('%Y-%m-%d')
-            if date_str != today_str and not is_skipped(r, date_str):
-                r_copy = r.copy()
-                r_copy['date'] = date_str
+            event_date = event_date.replace(year=today_date.year)
+            notify_date = event_date - timedelta(days=remind_days)
+
+        # Show if event is within window, but not today
+        show_event = event_date.date() > today_date.date() and event_date.date() <= window_end.date()
+        # Show if today is after or on the notification date
+        show_notify = notify_date.date() <= today_date.date()
+
+        # Skip if event is today (already shown in today's reminders)
+        if event_date.date() == today_date.date():
+            continue
+
+        if (show_event or show_notify) and not is_skipped(r, r.get('date')):
+            r_copy = r.copy()
+            r_copy['date'] = event_date.strftime('%Y-%m-%d')
+            if r.get('recurrence') == 'yearly':
                 r_copy['original_id'] = str(r['_id'])
-                upcoming_reminders.append(r_copy)
+            upcoming_reminders.append(r_copy)
 
-    # Remove reminders that are for today (already shown in today's reminders)
-    # Ensure all date comparisons use the same format
-    upcoming_reminders = [r for r in upcoming_reminders if r.get('date') != today_str]
-    # For recurring reminders, also check generated dates for edge cases
-    filtered_upcoming = []
-    for r in upcoming_reminders:
-        if r.get('recurrence') == 'yearly':
-            this_year_date = today_str[:4] + r['date'][4:]
-            next_year_date = str(int(today_str[:4]) + 1) + r['date'][4:]
-            if this_year_date == today_str or next_year_date == today_str:
-                continue
-        filtered_upcoming.append(r)
-    upcoming_reminders = filtered_upcoming
-    # Sort combined list by date
+    # Sort by event date
     upcoming_reminders.sort(key=lambda x: x['date'])
-    # Limit to reasonable number if needed, e.g. top 20
-    upcoming_reminders = upcoming_reminders[:20]
 
     # Year Selection Logic
     year_arg = request.args.get('year')
@@ -223,12 +235,12 @@ def quotes():
     # 2. Get image quotes from static folder
     images_dir = os.path.join(app.static_folder, 'images', 'quotes')
     image_quotes = []
-    if os.path.exists(images_dir):
-        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
-    
-    # 3. Combine into a unified list
-    all_content = []
-    
+@app.route('/goals/delete', methods=['POST'])
+def delete_goal():
+    goal_id = request.form.get('goal_id')
+    if goal_id:
+        db.goals.delete_one({'_id': ObjectId(goal_id)})
+    return redirect(url_for('goals'))
     for q in text_quotes:
         all_content.append({'type': 'text', 'data': q})
         
@@ -431,7 +443,9 @@ def log_habit():
 @app.route('/goals')
 def goals():
     goals_list = list(db.goals.find())
-    return render_template('goals.html', goals=goals_list)
+    from datetime import datetime
+    now = datetime.now()
+    return render_template('goals.html', goals=goals_list, now=now)
 
 if __name__ == '__main__':
     app.run(debug=True)
