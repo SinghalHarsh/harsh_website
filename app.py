@@ -8,6 +8,7 @@ import random
 from datetime import datetime, timedelta
 import calendar
 from bson.objectid import ObjectId
+from gita_data import gita_data
 
 load_dotenv()
 
@@ -535,6 +536,18 @@ def goals():
     from datetime import datetime
     now = datetime.now()
     return render_template('goals.html', active_goals=active_goals, completed_goals=completed_goals, now=now)
+
+@app.route('/gita')
+def gita_jar():
+    return render_template('gita.html', emotions=gita_data)
+
+@app.route('/gita/verse/<emotion>')
+def get_gita_verse(emotion):
+    if emotion in gita_data:
+        verses = gita_data[emotion]['verses']
+        verse = random.choice(verses)
+        return jsonify({'status': 'success', 'verse': verse, 'emotion': gita_data[emotion]['label']})
+    return jsonify({'status': 'error', 'message': 'Emotion not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
