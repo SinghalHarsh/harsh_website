@@ -94,15 +94,25 @@
     }
     .close-modal {
         position: absolute;
-        top: 20px;
-        right: 20px;
-        font-size: 1.5rem;
+        top: 15px;
+        right: 15px;
+        font-size: 2rem;
         color: #95a5a6;
         cursor: pointer;
-        transition: color 0.2s;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #f8f9fa;
+        z-index: 10;
     }
     .close-modal:hover {
         color: #e74c3c;
+        background: #fdedec;
+        transform: rotate(90deg);
     }
     .verse-header {
         text-align: center;
@@ -181,7 +191,7 @@
 <!-- Modal -->
 <div class="verse-modal" id="verseModal" onclick="closeModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <span class="close-modal" onclick="closeModal(event)">&times;</span>
         <div class="verse-header">
             <div class="verse-emotion" id="modalEmotion"></div>
             <div class="verse-ref" id="modalRef"></div>
@@ -219,6 +229,7 @@
     }
 
     function closeModal(event) {
+        if (event) event.stopPropagation();
         const modal = document.getElementById('verseModal');
         modal.classList.remove('active');
         document.body.style.overflow = '';
