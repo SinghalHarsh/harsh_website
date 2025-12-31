@@ -147,6 +147,14 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+}
+
+.goal-card:hover .goal-title-actions {
+    opacity: 1;
+    pointer-events: auto;
 }
 .complete-btn, .delete-btn {
     width: 32px;
