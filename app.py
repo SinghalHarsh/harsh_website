@@ -25,6 +25,13 @@ def inject_public_env():
     return {'env': public_env}
 
 mongo_uri = os.getenv('MONGO_URI')
+if not mongo_uri:
+    # Fallback for local development if not set, or raise error in production
+    if os.environ.get('FLASK_ENV') == 'development':
+        print("WARNING: MONGO_URI not set. Using default localhost.")
+    else:
+        print("CRITICAL: MONGO_URI environment variable is not set.")
+
 client = MongoClient(mongo_uri)
 try:
     db = client.get_database()
