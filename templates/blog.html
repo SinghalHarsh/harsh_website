@@ -6,20 +6,25 @@
 {% block content %}
     {{ page_header('Blog', 'Thoughts, tutorials, and analysis.') }}
 
-    <div class="blog-grid">
-        {% for post in posts %}
-        <a href="{{ post.link }}" target="_blank" class="blog-card">
-            <div class="blog-image">
-                <img src="{{ url_for('static', filename='images/blog/' + post.image) }}" alt="{{ post.title }}">
-            </div>
-            <div class="blog-content">
-                <div class="blog-meta">
-                    <span class="blog-date">{{ post.date }}</span>
-                    <span class="blog-category">{{ post.categories }}</span>
+    <div class="habit-container">
+        <div class="section-header">
+            <h2>Latest Posts</h2>
+        </div>
+
+        <div class="habits-grid">
+            {% for post in posts %}
+            <a href="{{ post.link }}" target="_blank" class="habit-card" style="display: block; text-decoration: none; color: inherit; padding: 0; overflow: hidden;">
+                <div class="blog-image" style="height: 200px; overflow: hidden;">
+                    <img src="{{ url_for('static', filename='images/blog/' + post.image) }}" alt="{{ post.title }}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
-                <h3 class="blog-title">{{ post.title }}</h3>
-            </div>
-        </a>
-        {% endfor %}
+                <div class="habit-info" style="padding: 20px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 10px;">
+                        {{ post.date }} • {{ post.categories }}
+                    </div>
+                    <h3 style="margin: 0; font-size: 1.2rem;">{{ post.title }}</h3>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
     </div>
 {% endblock %}

@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+import random
 from datetime import datetime, timedelta
 import calendar
 
@@ -37,15 +38,71 @@ def reminder():
     today_date = datetime.now()
     today_str = today_date.strftime('%Y-%m-%d')
     
+    # Helper to check if a date is skipped
+    def is_skipped(reminder, target_date_str):
+        skipped = reminder.get('skipped_dates', [])
+        return target_date_str in skipped
+
     todays_reminders = []
     for r in reminders:
         if r.get('date') == today_str:
-            todays_reminders.append(r)
+            if not is_skipped(r, today_str):
+                todays_reminders.append(r)
         elif r.get('recurrence') == 'yearly' and r.get('date')[5:] == today_str[5:]:
-            todays_reminders.append(r)
+            if not is_skipped(r, today_str):
+                todays_reminders.append(r)
             
-    # Simple upcoming logic (needs improvement for recurring, but keeping basic for now)
-    upcoming_reminders = [r for r in reminders if r.get('date') > today_str]
+    # Improved upcoming logic to include recurring instances
+    upcoming_reminders = []
+    
+    # 1. Add future one-time reminders
+    for r in reminders:
+        if not r.get('recurrence') and r.get('date') > today_str:
+            if not is_skipped(r, r.get('date')):
+                upcoming_reminders.append(r)
+                
+
+    # 2. Add upcoming recurring reminders (for the next 365 days)
+    for r in reminders:
+        if r.get('recurrence') == 'yearly':
+            # Calculate next occurrence
+            r_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
+            # Check this year
+            this_year_date = r_date.replace(year=today_date.year)
+            if this_year_date.date() > today_date.date():
+                date_str = this_year_date.strftime('%Y-%m-%d')
+                if date_str != today_str and not is_skipped(r, date_str):
+                    # Create a display copy
+                    r_copy = r.copy()
+                    r_copy['date'] = date_str
+                    r_copy['original_id'] = str(r['_id']) # Keep ref
+                    upcoming_reminders.append(r_copy)
+            # Check next year (to ensure we see full year ahead)
+            next_year_date = r_date.replace(year=today_date.year + 1)
+            date_str = next_year_date.strftime('%Y-%m-%d')
+            if date_str != today_str and not is_skipped(r, date_str):
+                r_copy = r.copy()
+                r_copy['date'] = date_str
+                r_copy['original_id'] = str(r['_id'])
+                upcoming_reminders.append(r_copy)
+
+    # Remove reminders that are for today (already shown in today's reminders)
+    # Ensure all date comparisons use the same format
+    upcoming_reminders = [r for r in upcoming_reminders if r.get('date') != today_str]
+    # For recurring reminders, also check generated dates for edge cases
+    filtered_upcoming = []
+    for r in upcoming_reminders:
+        if r.get('recurrence') == 'yearly':
+            this_year_date = today_str[:4] + r['date'][4:]
+            next_year_date = str(int(today_str[:4]) + 1) + r['date'][4:]
+            if this_year_date == today_str or next_year_date == today_str:
+                continue
+        filtered_upcoming.append(r)
+    upcoming_reminders = filtered_upcoming
+    # Sort combined list by date
+    upcoming_reminders.sort(key=lambda x: x['date'])
+    # Limit to reasonable number if needed, e.g. top 20
+    upcoming_reminders = upcoming_reminders[:20]
 
     # Year Selection Logic
     year_arg = request.args.get('year')
@@ -62,37 +119,35 @@ def reminder():
     
     for m in range(1, 13):
         # Get number of days in month and weekday of first day
-        # monthrange returns (weekday, num_days) where Mon=0
         first_weekday, num_days = calendar.monthrange(selected_year, m)
-        
+        # Python's calendar: Monday=0, Sunday=6
         month_days = []
-        # Padding
+        # Padding for first week
         for _ in range(first_weekday):
             month_days.append(None)
-            
-        # Actual days
         for d in range(1, num_days + 1):
             date_obj = datetime(selected_year, m, d)
             date_str = date_obj.strftime('%Y-%m-%d')
-            
+            display_date = date_obj.strftime('%a, %b %d, %Y')
             # Filter reminders for this day (Exact date OR Recurring yearly)
             reminders_for_day = []
             for r in reminders:
                 r_date = r.get('date')
                 if r_date == date_str:
-                    reminders_for_day.append(r)
+                    if not is_skipped(r, date_str):
+                        reminders_for_day.append(r)
                 elif r.get('recurrence') == 'yearly':
                     # Check if Month and Day match
                     if r_date[5:] == date_str[5:]:
-                        reminders_for_day.append(r)
-            
+                        if not is_skipped(r, date_str):
+                            reminders_for_day.append(r)
             month_days.append({
                 'date': date_str,
+                'display_date': display_date,
                 'day': d,
                 'count': len(reminders_for_day),
                 'reminders': reminders_for_day
             })
-            
         months_data.append({
             'name': calendar.month_abbr[m],
             'days': month_days
@@ -103,7 +158,7 @@ def reminder():
                            upcoming_reminders=upcoming_reminders,
                            months_data=months_data,
                            selected_year=selected_year,
-                           today_date=today_date.strftime('%Y-%m-%d'))
+                           today_date=today_date.strftime('%A, %B %d, %Y'))
 
 @app.route('/reminder/add', methods=['POST'])
 def add_reminder():
@@ -123,14 +178,67 @@ def add_reminder():
         if remind_days:
             reminder_data["remind_days_before"] = int(remind_days)
             
-        db.reminders.insert_one(reminder_data)
+        result = db.reminders.insert_one(reminder_data)
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                "status": "success", 
+                "id": str(result.inserted_id),
+                "title": title,
+                "date": date,
+                "recurrence": recurrence
+            })
+        
+    return redirect(url_for('reminder'))
+
+@app.route('/reminder/delete', methods=['POST'])
+def delete_reminder():
+    reminder_id = request.form.get('id')
+    delete_mode = request.form.get('mode') # 'instance' or 'series'
+    date_to_skip = request.form.get('date') # Required if mode is 'instance'
+    
+    if reminder_id:
+        from bson.objectid import ObjectId
+        
+        if delete_mode == 'instance' and date_to_skip:
+            # Add date to skipped_dates array
+            db.reminders.update_one(
+                {"_id": ObjectId(reminder_id)},
+                {"$addToSet": {"skipped_dates": date_to_skip}}
+            )
+        else:
+            # Default: Delete permanently
+            db.reminders.delete_one({"_id": ObjectId(reminder_id)})
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "id": reminder_id})
         
     return redirect(url_for('reminder'))
 
 @app.route('/quotes')
 def quotes():
-    quote = db.quotes.find_one()
-    return render_template('quotes.html', quote=quote)
+    # 1. Get text quotes from DB
+    text_quotes = list(db.quotes.find())
+    
+    # 2. Get image quotes from static folder
+    images_dir = os.path.join(app.static_folder, 'images', 'quotes')
+    image_quotes = []
+    if os.path.exists(images_dir):
+        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+    
+    # 3. Combine into a unified list
+    all_content = []
+    
+    for q in text_quotes:
+        all_content.append({'type': 'text', 'data': q})
+        
+    for img in image_quotes:
+        all_content.append({'type': 'image', 'filename': img})
+    
+    # 4. Pick one random item
+    selected_content = random.choice(all_content) if all_content else None
+    
+    return render_template('quotes.html', content=selected_content)
 
 @app.route('/habits')
 def habits():
@@ -169,15 +277,17 @@ def habits():
 
     active_habits = [h for h in all_habits if h.get('active', True)]
     
-    # Get selected habit or default to first active one
+    # Get selected habit or default to overall
     selected_habit_name = request.args.get('habit')
     selected_habit = None
+    is_overall = False
     
-    if active_habits:
-        if selected_habit_name:
-            selected_habit = next((h for h in active_habits if h['name'] == selected_habit_name), active_habits[0])
-        else:
-            selected_habit = active_habits[0]
+    if not selected_habit_name or selected_habit_name == 'overall':
+        is_overall = True
+    elif active_habits:
+        selected_habit = next((h for h in active_habits if h['name'] == selected_habit_name), None)
+        if not selected_habit:
+            is_overall = True
             
     # Year Selection Logic (same as reminders)
     year_arg = request.args.get('year')
@@ -188,8 +298,8 @@ def habits():
     # Generate Heatmap Data for Selected Habit
     months_data = []
     
-    if selected_habit:
-        habit_history = set(selected_habit.get('history', []))
+    if selected_habit or is_overall:
+        habit_history = set(selected_habit.get('history', [])) if selected_habit else set()
         
         for m in range(1, 13):
             first_weekday, num_days = calendar.monthrange(selected_year, m)
@@ -203,14 +313,34 @@ def habits():
             for d in range(1, num_days + 1):
                 date_obj = datetime(selected_year, m, d)
                 date_str = date_obj.strftime('%Y-%m-%d')
+                display_date = date_obj.strftime('%a, %b %d, %Y')
                 
-                is_completed = date_str in habit_history
-                
-                month_days.append({
-                    'date': date_str,
-                    'day': d,
-                    'completed': is_completed
-                })
+                if is_overall:
+                    # Calculate completion for all active habits
+                    completed_count = 0
+                    total_active = len(active_habits)
+                    for h in active_habits:
+                        if date_str in h.get('history', []):
+                            completed_count += 1
+                    
+                    completion_rate = (completed_count / total_active) if total_active > 0 else 0
+                    
+                    month_days.append({
+                        'date': date_str,
+                        'display_date': display_date,
+                        'day': d,
+                        'completed_count': completed_count,
+                        'total_active': total_active,
+                        'rate': completion_rate
+                    })
+                else:
+                    is_completed = date_str in habit_history
+                    month_days.append({
+                        'date': date_str,
+                        'display_date': display_date,
+                        'day': d,
+                        'completed': is_completed
+                    })
                 
             months_data.append({
                 'name': calendar.month_abbr[m],
@@ -221,9 +351,11 @@ def habits():
                            habits=active_habits,
                            all_habits=all_habits,
                            selected_habit=selected_habit,
+                           is_overall=is_overall,
                            months_data=months_data,
                            selected_year=selected_year,
-                           today_date=today_date.strftime('%Y-%m-%d'))
+                           today_date=today_date.strftime('%A, %B %d, %Y'),
+                           today_iso=today_date.strftime('%Y-%m-%d'))
 
 @app.route('/habits/toggle', methods=['POST'])
 def toggle_habit():
@@ -234,12 +366,17 @@ def toggle_habit():
         {"name": habit_name},
         {"$set": {"active": is_active}}
     )
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "name": habit_name, "active": is_active})
+
     return redirect(url_for('habits'))
 
 @app.route('/habits/add', methods=['POST'])
 def add_habit():
     name = request.form.get('name')
     color = request.form.get('color')
+    active_status = request.form.get('active') == 'true'
     
     if name:
         db.habits.insert_one({
@@ -247,9 +384,13 @@ def add_habit():
             "streak": "0 Days",
             "status": "New",
             "color": color if color else "text-blue",
-            "active": True,
+            "active": active_status,
             "history": []
         })
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "name": name})
+
     return redirect(url_for('habits'))
 
 @app.route('/habits/delete', methods=['POST'])
@@ -257,6 +398,10 @@ def delete_habit():
     habit_name = request.form.get('habit_name')
     if habit_name:
         db.habits.delete_one({"name": habit_name})
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "name": habit_name})
+        
     return redirect(url_for('habits'))
 
 @app.route('/habits/log', methods=['POST'])

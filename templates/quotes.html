@@ -6,9 +6,29 @@
 {% block content %}
     {{ page_header('Daily Quotes', 'Inspiration for the day.') }}
     
-    <div class="card">
-        <h3>Quote of the Day</h3>
-        <p style="font-size: 1.2rem; font-style: italic; margin: 20px 0;">"{{ quote.text }}"</p>
-        <div class="sub-text">- {{ quote.author }}</div>
+    <div class="habit-container">
+        <div class="section-header">
+            <h2>Quote of the Day</h2>
+        </div>
+
+        <div class="habit-card" style="text-align: center; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+            {% if content %}
+                {% if content.type == 'text' %}
+                    <i class="fa-solid fa-quote-left" style="font-size: 2rem; color: #eee; margin-bottom: 20px;"></i>
+                    <p style="font-size: 1.4rem; font-style: italic; margin-bottom: 20px; color: #333;">"{{ content.data.text }}"</p>
+                    <div style="font-weight: 600; color: #666;">- {{ content.data.author }}</div>
+                {% elif content.type == 'image' %}
+                    <img src="{{ url_for('static', filename='images/quotes/' + content.filename) }}" alt="Quote" style="max-width: 100%; max-height: 600px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                {% endif %}
+            {% else %}
+                <p style="color: #999; font-style: italic;">No quotes available.</p>
+            {% endif %}
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="location.reload()" class="btn-primary" style="background: #333; border-color: #333; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;">
+                <i class="fa-solid fa-shuffle"></i> New Quote
+            </button>
+        </div>
     </div>
 {% endblock %}
