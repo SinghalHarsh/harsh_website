@@ -452,12 +452,24 @@ def log_habit():
         
     return redirect(url_for('habits'))
 
+@app.route('/goals/complete', methods=['POST'])
+def complete_goal():
+    goal_id = request.form.get('goal_id')
+    if goal_id:
+        db.goals.update_one(
+            {'_id': ObjectId(goal_id)},
+            {'$set': {'completed': True, 'completed_at': datetime.now()}}
+        )
+    return redirect(url_for('goals'))
+
 @app.route('/goals')
 def goals():
     goals_list = list(db.goals.find())
+    active_goals = [g for g in goals_list if not g.get('completed')]
+    completed_goals = [g for g in goals_list if g.get('completed')]
     from datetime import datetime
     now = datetime.now()
-    return render_template('goals.html', goals=goals_list, now=now)
+    return render_template('goals.html', active_goals=active_goals, completed_goals=completed_goals, now=now)
 
 if __name__ == '__main__':
     app.run(debug=True)

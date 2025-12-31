@@ -13,85 +13,66 @@
     <div class="section-header">
         <h2>Current Goals</h2>
     </div>
-        <div class="goals-grid">
-            {% if goals %}
-                {% for goal in goals %}
-                <div class="goal-card goal-flex-card{% if goal.get('completed') %} goal-completed{% endif %}">
-                    <div class="goal-card-top">
-                        <div class="goal-title-row">
-                            <div class="goal-title-main">
-                                <i class="fa-solid fa-bullseye"></i> {{ goal.title }}
-                                {% if goal.created_at %}
-                                    {% set days_passed = ((now - (goal.created_at if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at|to_datetime)).days) %}
-                                    <span class="goal-days">
-                                        {% if days_passed > 0 %}
-                                            • {{ days_passed }} day{{ 's' if days_passed != 1 else '' }} ago
-                                        {% else %}
-                                            • Today
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                            </div>
-                            <div class="goal-title-actions">
-                                <form method="POST" action="/goals/complete" style="margin:0; padding:0; display:inline;" class="goal-complete-form">
-                                    <input type="hidden" name="goal_id" value="{{ goal._id }}">
-                                    {% if not goal.get('completed') %}
-                                    <button type="submit" class="complete-btn" title="Mark Complete"><i class="fa-solid fa-circle-check"></i></button>
-                                    {% else %}
-                                    <span title="Completed" class="complete-btn done"><i class="fa-solid fa-circle-check"></i></span>
-                                    {% endif %}
-                                </form>
-                                <form method="POST" action="/goals/delete" style="margin:0; padding:0; display:inline;" class="goal-delete-form">
-                                    <input type="hidden" name="goal_id" value="{{ goal._id }}">
-                                    <button type="button" class="delete-btn" title="Delete Goal" onclick="showGoalDeleteModal(this)"><i class="fa-solid fa-trash"></i></button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="goal-card-bottom">
-                        {% if goal.created_at %}
-                        <span class="goal-date">Added {{ goal.created_at.strftime('%b %d, %Y') if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p style="color: #999; font-style: italic; text-align: center; padding: 20px;">No goals set yet.</p>
-            {% endif %}
-        </div>
     <div class="goals-grid">
-        {% if goals %}
-            {% for goal in goals %}
+        {% if active_goals %}
+            {% for goal in active_goals %}
             <div class="goal-card goal-flex-card">
                 <div class="goal-card-top">
-                    <div class="goal-title">
-                        <i class="fa-solid fa-bullseye"></i> {{ goal.title }}
-                        {% if goal.created_at %}
-                        <span class="goal-days" style="font-size:0.82em; color:#aaa; font-weight:400; margin-left:10px;">
-                            {% set days_passed = ((now - (goal.created_at if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at|to_datetime)).days) %}
-                            {{ days_passed }} day{{ 's' if days_passed != 1 else '' }} ago
-                        </span>
-                        {% endif %}
+                    <div class="goal-title-row">
+                        <div class="goal-title-main">
+                            {{ goal.title }}
+                        </div>
+                        <div class="goal-title-actions">
+                            <form method="POST" action="/goals/complete" style="margin:0; padding:0; display:inline;" class="goal-complete-form">
+                                <input type="hidden" name="goal_id" value="{{ goal._id }}">
+                                <button type="submit" class="complete-btn" title="Mark Complete"><i class="fa-solid fa-circle-check"></i></button>
+                            </form>
+                            <form method="POST" action="/goals/delete" style="margin:0; padding:0; display:inline;" class="goal-delete-form">
+                                <input type="hidden" name="goal_id" value="{{ goal._id }}">
+                                <button type="button" class="delete-btn" title="Delete Goal" onclick="showGoalDeleteModal(this)"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </div>
                     </div>
-                    {% set now = namespace(value=none) %}
-                    {% if not now.value %}{% set now.value = (cycler.__self__.now() if cycler and cycler.__self__ and cycler.__self__.now else namespace(value=none)) %}{% endif %}
-                    {% set now = now.value or (datetime.utcnow() if datetime else None) %}
-                    <form method="POST" action="/goals/delete" style="margin:0; padding:0;" class="goal-delete-form">
-                        <input type="hidden" name="goal_id" value="{{ goal._id }}">
-                        <button type="button" class="delete-btn" title="Delete Goal" onclick="showGoalDeleteModal(this)" style="background:none; border:none; color:#e74c3c; font-size:1.1rem; margin-left:10px;"><i class="fa-solid fa-trash"></i></button>
-                    </form>
                 </div>
                 <div class="goal-card-bottom">
                     {% if goal.created_at %}
-                    <span class="goal-date">Added {{ goal.created_at.strftime('%b %d, %Y') if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at }}</span>
+                    {% set days_passed = ((now - (goal.created_at if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at|to_datetime)).days) %}
+                    <span class="goal-date"><i class="fa-regular fa-calendar"></i> Added {{ goal.created_at.strftime('%b %d, %Y') if goal.created_at.__class__.__name__ == 'datetime' else goal.created_at }} ({{ days_passed }} day{{ 's' if days_passed != 1 else '' }} ago)</span>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         {% else %}
-            <p style="color: #999; font-style: italic; text-align: center; padding: 20px;">No goals set yet.</p>
+            <p style="color: #999; font-style: italic; text-align: center; padding: 20px;">No active goals.</p>
         {% endif %}
     </div>
+
+    <!-- Completed Goals -->
+    {% if completed_goals %}
+    <div class="section-header" style="margin-top: 40px;">
+        <h2>Completed Goals</h2>
+    </div>
+    <div class="goals-grid">
+        {% for goal in completed_goals %}
+        <div class="goal-card goal-flex-card goal-completed">
+            <div class="goal-card-top">
+                <div class="goal-title-row">
+                    <div class="goal-title-main" style="margin-bottom: 0;">
+                        {{ goal.title }}
+                    </div>
+                    <div class="goal-title-actions" style="top: 50%; transform: translateY(-50%); right: 25px;">
+                        <form method="POST" action="/goals/delete" style="margin:0; padding:0; display:inline;" class="goal-delete-form">
+                            <input type="hidden" name="goal_id" value="{{ goal._id }}">
+                            <button type="button" class="delete-btn" title="Delete Goal" onclick="showGoalDeleteModal(this)"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
 
     <!-- Goal Delete Modal (single, outside loop) -->
     <div id="goalDeleteModal" class="modal-overlay">
