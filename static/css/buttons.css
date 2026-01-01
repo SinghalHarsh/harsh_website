@@ -1,0 +1,17 @@
+
+/* Ghost Button */
+.btn-ghost {
+    background: transparent;
+    border: 1px solid #e0e0e0;
+    color: #666;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+.btn-ghost:hover {
+    background: #f8f9fa;
+    color: #333;
+    border-color: #ccc;
+}

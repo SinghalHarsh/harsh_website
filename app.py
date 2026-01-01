@@ -139,49 +139,83 @@ def reminder():
         skipped = reminder.get('skipped_dates', [])
         return target_date_str in skipped
 
+    # Helper to check if a date is completed
+    def is_completed(reminder, target_date_str):
+        completed = reminder.get('completed_dates', [])
+        return target_date_str in completed
+
     todays_reminders = []
     for r in reminders:
         if r.get('date') == today_str:
             if not is_skipped(r, today_str):
+                r['completed'] = is_completed(r, today_str)
                 todays_reminders.append(r)
         elif r.get('recurrence') == 'yearly' and r.get('date')[5:] == today_str[5:]:
             if not is_skipped(r, today_str):
+                r['completed'] = is_completed(r, today_str)
+                todays_reminders.append(r)
+        elif r.get('recurrence') == 'monthly' and r.get('date')[8:] == today_str[8:]:
+            if not is_skipped(r, today_str):
+                r['completed'] = is_completed(r, today_str)
                 todays_reminders.append(r)
             
-    # Show reminders where:
-    # - The event date is within the next 5 days (regardless of remind_days_before)
-    # - OR the notification date (event - remind_days_before) is within the next 'remind_days_before' days from today
-    upcoming_reminders = []
-    window_days = 5
-    window_end = today_date + timedelta(days=window_days)
+    # Missed Reminders Logic
+    missed_reminders = []
     for r in reminders:
-        event_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
-        remind_days = int(r.get('remind_days_before', 0))
-        notify_date = event_date - timedelta(days=remind_days)
+        last_occurrence = None
+        
+        if r.get('recurrence') == 'monthly':
+            try:
+                day_of_month = int(r.get('date').split('-')[2])
+                # Check current month
+                try:
+                    candidate = datetime(today_date.year, today_date.month, day_of_month)
+                    if candidate.date() < today_date.date():
+                        last_occurrence = candidate
+                    else:
+                        # Check previous month
+                        m = today_date.month - 1
+                        y = today_date.year
+                        if m < 1:
+                            m = 12
+                            y -= 1
+                        last_occurrence = datetime(y, m, day_of_month)
+                except ValueError:
+                    # If date doesn't exist in current/prev month (e.g. 31st), try previous valid
+                    pass
+            except: pass
+            
+        elif r.get('recurrence') == 'yearly':
+            try:
+                base_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
+                # Check current year
+                try:
+                    candidate = base_date.replace(year=today_date.year)
+                    if candidate.date() < today_date.date():
+                        last_occurrence = candidate
+                    else:
+                        last_occurrence = base_date.replace(year=today_date.year - 1)
+                except ValueError: pass
+            except: pass
+            
+        else: # One-time
+            try:
+                event_date = datetime.strptime(r.get('date'), '%Y-%m-%d')
+                if event_date.date() < today_date.date():
+                    last_occurrence = event_date
+            except: pass
+            
+        if last_occurrence:
+            last_occurrence_str = last_occurrence.strftime('%Y-%m-%d')
+            if not is_completed(r, last_occurrence_str) and not is_skipped(r, last_occurrence_str):
+                r_copy = r.copy()
+                r_copy['date'] = last_occurrence_str
+                if r.get('recurrence'):
+                    r_copy['original_id'] = str(r['_id'])
+                missed_reminders.append(r_copy)
 
-        # For recurring yearly reminders, adjust the year if needed
-        if r.get('recurrence') == 'yearly':
-            event_date = event_date.replace(year=today_date.year)
-            notify_date = event_date - timedelta(days=remind_days)
-
-        # Show if event is within window, but not today
-        show_event = event_date.date() > today_date.date() and event_date.date() <= window_end.date()
-        # Show if today is after or on the notification date
-        show_notify = notify_date.date() <= today_date.date()
-
-        # Skip if event is today (already shown in today's reminders)
-        if event_date.date() == today_date.date():
-            continue
-
-        if (show_event or show_notify) and not is_skipped(r, r.get('date')):
-            r_copy = r.copy()
-            r_copy['date'] = event_date.strftime('%Y-%m-%d')
-            if r.get('recurrence') == 'yearly':
-                r_copy['original_id'] = str(r['_id'])
-            upcoming_reminders.append(r_copy)
-
-    # Sort by event date
-    upcoming_reminders.sort(key=lambda x: x['date'])
+    # Sort missed by date (descending - most recent missed first)
+    missed_reminders.sort(key=lambda x: x['date'], reverse=True)
 
     # Year Selection Logic
     year_arg = request.args.get('year')
@@ -214,12 +248,23 @@ def reminder():
                 r_date = r.get('date')
                 if r_date == date_str:
                     if not is_skipped(r, date_str):
-                        reminders_for_day.append(r)
+                        r_copy = r.copy()
+                        r_copy['completed'] = is_completed(r, date_str)
+                        reminders_for_day.append(r_copy)
                 elif r.get('recurrence') == 'yearly':
                     # Check if Month and Day match
                     if r_date[5:] == date_str[5:]:
                         if not is_skipped(r, date_str):
-                            reminders_for_day.append(r)
+                            r_copy = r.copy()
+                            r_copy['completed'] = is_completed(r, date_str)
+                            reminders_for_day.append(r_copy)
+                elif r.get('recurrence') == 'monthly':
+                    # Check if Day matches
+                    if r_date[8:] == date_str[8:]:
+                        if not is_skipped(r, date_str):
+                            r_copy = r.copy()
+                            r_copy['completed'] = is_completed(r, date_str)
+                            reminders_for_day.append(r_copy)
             month_days.append({
                 'date': date_str,
                 'display_date': display_date,
@@ -234,10 +279,27 @@ def reminder():
 
     return render_template('reminder.html', 
                            todays_reminders=todays_reminders, 
-                           upcoming_reminders=upcoming_reminders,
+                           missed_reminders=missed_reminders,
                            months_data=months_data,
                            selected_year=selected_year,
-                           today_date=today_date.strftime('%A, %B %d, %Y'))
+                           today_date=today_date.strftime('%A, %B %d, %Y'),
+                           today_iso=today_str)
+
+@app.route('/reminder/complete', methods=['POST'])
+def complete_reminder():
+    reminder_id = request.form.get('id')
+    date_completed = request.form.get('date')
+    
+    if reminder_id and date_completed:
+        from bson.objectid import ObjectId
+        db.reminders.update_one(
+            {"_id": ObjectId(reminder_id)},
+            {"$addToSet": {"completed_dates": date_completed}}
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"status": "success", "id": reminder_id, "date": date_completed})
+            
+    return redirect(url_for('reminder'))
 
 @app.route('/reminder/add', methods=['POST'])
 def add_reminder():
@@ -245,12 +307,14 @@ def add_reminder():
     date = request.form.get('date')
     recurrence = request.form.get('recurrence') # 'yearly' or None
     remind_days = request.form.get('remind_days') # number or None
+    category = request.form.get('category') # 'Birthday', 'Anniversary', etc.
     
     if title and date:
         reminder_data = {
             "title": title,
             "date": date,
             "recurrence": recurrence,
+            "category": category,
             "created_at": datetime.now()
         }
         
@@ -265,7 +329,8 @@ def add_reminder():
                 "id": str(result.inserted_id),
                 "title": title,
                 "date": date,
-                "recurrence": recurrence
+                "recurrence": recurrence,
+                "category": category
             })
         
     return redirect(url_for('reminder'))

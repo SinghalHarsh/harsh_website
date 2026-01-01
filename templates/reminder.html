@@ -23,16 +23,35 @@
 
     {% if todays_reminders %}
         {% for r in todays_reminders %}
-        <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}">
+        <div class="reminder-card {{ 'completed' if r.completed else '' }}" id="reminder-{{ r.original_id if r.original_id else r._id }}-{{ today_iso }}">
             <div class="reminder-title">
-                <i class="fa-solid fa-bell"></i> {{ r.title }}
+                {% if r.category == 'Birthday' %}
+                <i class="fa-solid fa-cake-candles" style="color: #e67e22;"></i>
+                {% elif r.category == 'Anniversary' %}
+                <i class="fa-solid fa-heart" style="color: #e74c3c;"></i>
+                {% elif r.category == 'Work' %}
+                <i class="fa-solid fa-briefcase" style="color: #3498db;"></i>
+                {% elif r.category == 'Personal' %}
+                <i class="fa-solid fa-user" style="color: #9b59b6;"></i>
+                {% elif r.category == 'Bill' %}
+                <i class="fa-solid fa-file-invoice-dollar" style="color: #27ae60;"></i>
+                {% else %}
+                <i class="fa-solid fa-bell"></i>
+                {% endif %}
+                 {{ r.title }}
                 {% if r.recurrence == 'yearly' %}
                 <span class="reminder-badge">Yearly</span>
+                {% elif r.recurrence == 'monthly' %}
+                <span class="reminder-badge">Monthly</span>
                 {% endif %}
             </div>
             <div class="reminder-action">
-                <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ today_date }}')"></i>
-                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ today_date }}')"></i>
+                {% if not r.completed %}
+                <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ today_iso }}')"></i>
+                {% else %}
+                <i class="fa-solid fa-check-double" style="color: #27ae60; margin-right: 12px;" title="Completed"></i>
+                {% endif %}
+                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ today_iso }}')"></i>
             </div>
         </div>
         {% endfor %}
@@ -40,33 +59,45 @@
         <p style="color: #999; font-style: italic;">No reminders for today.</p>
     {% endif %}
     
-    <!-- Upcoming Reminders List -->
-    <div class="section-header">
-        <h2>Upcoming Reminders</h2>
+    <!-- Missed Reminders -->
+    {% if missed_reminders %}
+    <div class="section-header" style="margin-top: 30px;">
+        <h2 style="color: #e74c3c;">Missed Reminders</h2>
     </div>
-    
-    {% if upcoming_reminders %}
-        {% for r in upcoming_reminders %}
-        <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}">
-            <div class="reminder-title">
-                <i class="fa-solid fa-bell"></i> {{ r.title }}
-                <span class="reminder-date">{{ r.date }}</span>
-                {% if r.recurrence == 'yearly' %}
-                <span class="reminder-badge">Yearly</span>
-                {% endif %}
-                {% if r.remind_days_before %}
-                <span class="reminder-badge" style="background:#fff3cd; color:#856404;">{{ r.remind_days_before }}d before</span>
-                {% endif %}
-            </div>
-            <div class="reminder-action">
-                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')"></i>
-            </div>
+    {% for r in missed_reminders %}
+    <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}-{{ r.date }}" style="border-left: 4px solid #e74c3c;">
+        <div class="reminder-title">
+            {% if r.category == 'Birthday' %}
+            <i class="fa-solid fa-cake-candles" style="color: #e74c3c;"></i>
+            {% elif r.category == 'Anniversary' %}
+            <i class="fa-solid fa-heart" style="color: #e74c3c;"></i>
+            {% elif r.category == 'Work' %}
+            <i class="fa-solid fa-briefcase" style="color: #e74c3c;"></i>
+            {% elif r.category == 'Personal' %}
+            <i class="fa-solid fa-user" style="color: #e74c3c;"></i>
+            {% elif r.category == 'Bill' %}
+            <i class="fa-solid fa-file-invoice-dollar" style="color: #e74c3c;"></i>
+            {% else %}
+            <i class="fa-solid fa-bell" style="color: #e74c3c;"></i>
+            {% endif %}
+             {{ r.title }}
+            <span class="reminder-date" style="color: #e74c3c;">{{ r.date }}</span>
+            {% if r.recurrence == 'yearly' %}
+            <span class="reminder-badge">Yearly</span>
+            {% elif r.recurrence == 'monthly' %}
+            <span class="reminder-badge">Monthly</span>
+            {% endif %}
         </div>
-        {% endfor %}
-    {% else %}
-        <p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>
+        <div class="reminder-action">
+            <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ r.date }}')"></i>
+            <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')"></i>
+        </div>
+    </div>
+    {% endfor %}
     {% endif %}
-
+    
+    <!-- Upcoming Reminders List Removed -->
+    
     <!-- Calendar View -->
     <div class="insights-wrapper" style="margin-top: 40px;">
         <div class="controls-header" style="justify-content: space-between; border-bottom: none; padding-bottom: 0; margin-bottom: 15px;">
@@ -99,9 +130,9 @@
                                 <div class="heatmap-cell empty" style="visibility:hidden;"></div>
                             {% else %}
                                 <div class="heatmap-cell {{ 'today' if day.date == today_date else '' }}"
-                                     style="background-color: rgba(46, 204, 113, {{ 0.2 + (day.count * 0.2) if day.count > 0 else 0 }}); {{ 'background-color: #f0f2f5;' if day.count == 0 else '' }}"
+                                     style="background-color: {{ 'rgba(46, 204, 113, 0.8)' if day.reminders and day.reminders[0].completed else ('rgba(46, 204, 113, ' ~ (0.2 + (day.count * 0.2)) ~ ')' if day.count > 0 else '#f0f2f5') }};"
                                      {% if day.reminders %}
-                                     data-tooltip="{{ day.display_date }}: {{ day.reminders | map(attribute='title') | join(', ') }}"
+                                     data-tooltip="{{ day.display_date }}: {{ day.reminders | map(attribute='title') | join(', ') }} {{ '(Completed)' if day.reminders[0].completed else '' }}"
                                      {% else %}
                                      data-tooltip="{{ day.display_date }}: No events"
                                      {% endif %}>
@@ -131,13 +162,25 @@
                         <input type="date" id="reminderDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
                     </div>
                     <div style="flex: 1; min-width: 150px;">
+                        <select id="reminderCategory" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <option value="">Category (Optional)</option>
+                            <option value="Birthday">Birthday</option>
+                            <option value="Anniversary">Anniversary</option>
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Bill">Bill</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
                         <select id="reminderRecurrence" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
                             <option value="">One-time</option>
                             <option value="yearly">Yearly</option>
+                            <option value="monthly">Monthly</option>
                         </select>
                     </div>
                     <div style="flex: 1; min-width: 150px; display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="reminderDays" placeholder="Days before" style="width: 160px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        <input type="number" id="reminderDays" placeholder="Days before" value="0" style="width: 160px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
                         <button type="button" onclick="addReminder()" class="btn-primary" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
@@ -184,6 +227,7 @@
         const date = document.getElementById('reminderDate').value;
         const recurrence = document.getElementById('reminderRecurrence').value;
         const days = document.getElementById('reminderDays').value;
+        const category = document.getElementById('reminderCategory').value;
 
         if (!title || !date) {
             alert('Please enter a title and date');
@@ -194,6 +238,7 @@
         formData.append('title', title);
         formData.append('date', date);
         formData.append('recurrence', recurrence);
+        if (category) formData.append('category', category);
         if (days) formData.append('remind_days', days);
 
         try {
@@ -207,7 +252,8 @@
                 // Clear inputs
                 document.getElementById('reminderTitle').value = '';
                 document.getElementById('reminderDate').value = '';
-                document.getElementById('reminderDays').value = '';
+                document.getElementById('reminderDays').value = '0';
+                document.getElementById('reminderCategory').value = '';
                 
                 // Add to list
                 createReminderItem(data);
@@ -223,40 +269,78 @@
     }
     
         async function markComplete(id, date) {
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('date', date);
-            try {
-                const response = await fetch("/reminder/complete", {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const el = document.getElementById(`reminder-${id}`);
-                    if (el) el.classList.add('completed');
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('date', date);
+        try {
+            const response = await fetch("/reminder/complete", {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                const el = document.getElementById(`reminder-${id}-${date}`);
+                if (el) {
+                    // Check if it's a missed reminder (date < today)
+                    // We can infer this if the element has the red border style or by comparing dates
+                    // But simpler: if the date passed is NOT today's date (which we can get from template or just check logic)
+                    // Actually, we can just check if the element is inside the "Missed Reminders" section?
+                    // Or better: compare date string.
+                    
+                    const todayIso = "{{ today_iso }}";
+                    if (date !== todayIso) {
+                        // It's a missed reminder -> Remove it
+                        el.remove();
+                        
+                        // Check if missed section is empty
+                        // This is a bit harder without a container ID, but we can check if any missed reminders remain
+                        // For now, just removing the element is enough.
+                    } else {
+                        // It's today's reminder -> Mark completed
+                        el.classList.add('completed');
+                        // Update icon
+                        const icon = el.querySelector('.fa-check');
+                        if (icon) {
+                            icon.classList.remove('fa-check');
+                            icon.classList.add('fa-check-double');
+                            icon.style.cursor = 'default';
+                            icon.onclick = null;
+                            icon.title = "Completed";
+                        }
+                    }
                 }
-            } catch (e) {
-                console.error(e);
-                location.reload();
             }
+        } catch (e) {
+            console.error(e);
+            location.reload();
         }
+    }
 
     function createReminderItem(data) {
         const list = document.getElementById('reminderList');
+        if (!list) return; // Safety check
         const div = document.createElement('div');
         div.className = 'habit-list-item';
-        div.id = `reminder-${data.id}`;
+        div.id = `reminder-${data.id}-${data.date}`;
         
         let tags = `<span class="suggestion-tag">${data.date}</span>`;
         if (data.recurrence === 'yearly') {
             tags += `<span class="suggestion-tag active">Yearly</span>`;
+        } else if (data.recurrence === 'monthly') {
+            tags += `<span class="suggestion-tag active">Monthly</span>`;
         }
         
+        let icon = '<i class="fa-solid fa-bell"></i>';
+        if (data.category === 'Birthday') icon = '<i class="fa-solid fa-cake-candles" style="color: #e67e22;"></i>';
+        else if (data.category === 'Anniversary') icon = '<i class="fa-solid fa-heart" style="color: #e74c3c;"></i>';
+        else if (data.category === 'Work') icon = '<i class="fa-solid fa-briefcase" style="color: #3498db;"></i>';
+        else if (data.category === 'Personal') icon = '<i class="fa-solid fa-user" style="color: #9b59b6;"></i>';
+        else if (data.category === 'Bill') icon = '<i class="fa-solid fa-file-invoice-dollar" style="color: #27ae60;"></i>';
+
         div.innerHTML = `
             <div class="habit-info-row" style="display: flex; align-items: center; gap: 15px;">
-                <span class="habit-name">${data.title}</span>
+                <span class="habit-name">${icon} ${data.title}</span>
                 ${tags}
             </div>
             <div class="habit-meta">
@@ -269,7 +353,7 @@
     }
 
     function confirmDelete(id, title, recurrence, date) {
-        if (recurrence === 'yearly') {
+        if (recurrence === 'yearly' || recurrence === 'monthly') {
             pendingDeleteId = id;
             pendingDeleteDate = date;
             const modal = document.getElementById('recurringDeleteModal');
@@ -317,15 +401,22 @@
             });
             const data = await response.json();
             if (data.status === 'success') {
-                const el = document.getElementById(`reminder-${id}`);
-                if (el) el.remove();
+                if (mode === 'series') {
+                    const elements = document.querySelectorAll(`[id^="reminder-${id}-"]`);
+                    elements.forEach(el => el.remove());
+                } else {
+                    const el = document.getElementById(`reminder-${id}-${date}`);
+                    if (el) el.remove();
+                }
                 
                 // Check if empty
                 const list = document.getElementById('reminderList');
-                if (list.children.length === 0 || (list.children.length === 1 && list.children[0].id === 'noRemindersMsg')) {
-                    const msg = document.getElementById('noRemindersMsg');
-                    if (msg) msg.style.display = 'block';
-                    else list.innerHTML = '<p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>';
+                if (list) {
+                    if (list.children.length === 0 || (list.children.length === 1 && list.children[0].id === 'noRemindersMsg')) {
+                        const msg = document.getElementById('noRemindersMsg');
+                        if (msg) msg.style.display = 'block';
+                        else list.innerHTML = '<p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>';
+                    }
                 }
             }
         } catch (e) {
