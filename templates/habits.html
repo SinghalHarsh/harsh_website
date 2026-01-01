@@ -329,11 +329,16 @@
 <!-- Custom Confirmation Modal -->
 <div id="confirmModal" class="modal-overlay">
     <div class="modal-content">
-        <div class="modal-title">Are you sure?</div>
-        <div class="modal-body" id="modalMessage">Do you really want to delete this?</div>
+        <div class="modal-header">
+            <h3 class="modal-title">Are you sure?</h3>
+            <button onclick="closeModal()" class="modal-close-btn">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalMessage" style="margin-bottom: 20px; color: #4a5568;">Do you really want to delete this?</div>
         <div class="modal-actions">
-            <button class="btn-modal cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-modal confirm" id="modalConfirmBtn">Delete</button>
+            <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-modal-submit" id="modalConfirmBtn" style="background: #e53e3e; box-shadow: 0 4px 6px -1px rgba(229, 62, 62, 0.3);">Delete</button>
         </div>
     </div>
 </div>

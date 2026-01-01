@@ -150,12 +150,17 @@
     <!-- Custom Modal for Recurring Deletion -->
     <div class="modal-overlay" id="recurringDeleteModal">
         <div class="modal-content">
-            <h3>Delete Recurring Reminder</h3>
-            <p>Do you want to delete this specific occurrence or the entire series?</p>
+            <div class="modal-header">
+                <h3 class="modal-title">Delete Recurring Reminder</h3>
+                <button onclick="closeRecurringModal()" class="modal-close-btn">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <p style="margin-bottom: 20px; color: #4a5568;">Do you want to delete this specific occurrence or the entire series?</p>
             <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-                <button class="btn-primary" onclick="confirmRecurringDelete('instance')" style="width: 100%;">Delete This Occurrence Only</button>
-                <button class="btn-ghost" onclick="confirmRecurringDelete('series')" style="width: 100%; color: var(--danger-red); border-color: var(--danger-red);">Delete Entire Series</button>
-                <button class="btn-ghost" onclick="closeRecurringModal()" style="width: 100%;">Cancel</button>
+                <button class="btn-modal-submit" onclick="confirmRecurringDelete('instance')" style="width: 100%;">Delete This Occurrence Only</button>
+                <button class="btn-modal-cancel" onclick="confirmRecurringDelete('series')" style="width: 100%; color: #e53e3e; border: 1px solid #e53e3e; background: white;">Delete Entire Series</button>
+                <button class="btn-modal-cancel" onclick="closeRecurringModal()" style="width: 100%;">Cancel</button>
             </div>
         </div>
     </div>

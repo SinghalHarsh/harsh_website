@@ -7,6 +7,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/headshot.png') }}">
@@ -81,11 +82,16 @@
     <!-- Global Confirmation Modal -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-content">
-            <h3>Confirm Action</h3>
-            <p id="modalMessage">Are you sure?</p>
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Action</h3>
+                <button onclick="closeModal()" class="modal-close-btn">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalMessage" style="margin-bottom: 20px; color: #4a5568;">Are you sure?</div>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeModal()">Cancel</button>
-                <button class="btn-primary" id="modalConfirmBtn">Confirm</button>
+                <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-modal-submit" id="modalConfirmBtn" style="background: #e53e3e; box-shadow: 0 4px 6px -1px rgba(229, 62, 62, 0.3);">Confirm</button>
             </div>
         </div>
     </div>

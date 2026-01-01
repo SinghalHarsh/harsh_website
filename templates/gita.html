@@ -56,64 +56,7 @@
         color: #34495e;
     }
     
-    /* Modal Styles */
-    .verse-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    .verse-modal.active {
-        display: flex;
-        opacity: 1;
-    }
-    .modal-content {
-        background: #fff;
-        border-radius: 20px;
-        max-width: 600px;
-        width: 100%;
-        padding: 40px;
-        position: relative;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    .verse-modal.active .modal-content {
-        transform: scale(1);
-    }
-    .close-modal {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 2rem;
-        color: #95a5a6;
-        cursor: pointer;
-        transition: all 0.2s;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background: #f8f9fa;
-        z-index: 10;
-    }
-    .close-modal:hover {
-        color: #e74c3c;
-        background: #fdedec;
-        transform: rotate(90deg);
-    }
+    /* Modal Styles - Using global styles from style.css */
     .verse-header {
         text-align: center;
         margin-bottom: 30px;
@@ -177,6 +120,29 @@
         <p style="font-size: 0.9rem; color: #95a5a6; margin-top: 8px;">(Drawing from {{ total_verses }} verses)</p>
     </div>
 
+    <!-- New Features Section -->
+    <div class="gita-features" style="margin-bottom: 50px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <!-- Random Verse Card -->
+        <div class="feature-card" onclick="fetchRandomVerse()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; cursor: pointer; width: 250px; box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3); transition: transform 0.2s;">
+            <i class="fa-solid fa-shuffle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+            <h3 style="margin: 0; font-size: 1.2rem;">Random Verse</h3>
+            <p style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">Discover wisdom serendipitously</p>
+        </div>
+
+        <!-- Search Card -->
+        <div class="feature-card" style="background: white; padding: 20px; border-radius: 15px; width: 320px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: left; border: 1px solid rgba(0,0,0,0.05);">
+            <h3 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 1.2rem;"><i class="fa-solid fa-magnifying-glass"></i> Search Verse</h3>
+            <div style="display: flex; gap: 10px;">
+                <select id="chapterSelect" onchange="updateVerseMax()" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
+                    <option value="">Chapter</option>
+                    <!-- Populated by JS -->
+                </select>
+                <input type="number" id="verseInput" placeholder="Verse" min="1" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
+                <button onclick="searchVerse()" style="background: #2c3e50; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: background 0.2s;">Go</button>
+            </div>
+        </div>
+    </div>
+
     <div class="emotions-grid">
         {% for key, data in emotions.items() %}
         <div class="emotion-card" onclick="openVerse('{{ key }}')" style="border-top: 5px solid {{ data.color }}">
@@ -190,11 +156,15 @@
 </div>
 
 <!-- Modal -->
-<div class="verse-modal" id="verseModal">
+<div class="modal-overlay" id="verseModal">
     <div class="modal-content">
-        <span class="close-modal" id="closeModalBtn">&times;</span>
-        <div class="verse-header">
-            <div class="verse-emotion" id="modalEmotion"></div>
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalEmotion" style="text-transform: uppercase; letter-spacing: 1px;"></h3>
+            <button id="closeModalBtn" class="modal-close-btn">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="verse-header" style="border: none; padding: 0; margin-bottom: 20px;">
             <div class="verse-ref" id="modalRef"></div>
         </div>
         <div class="verse-text">
@@ -260,5 +230,78 @@
             closeModal();
         }
     });
+
+    // New Features Logic
+    let chapterCounts = {};
+
+    function initGitaFeatures() {
+        fetch('/api/gita/chapters')
+            .then(res => res.json())
+            .then(data => {
+                chapterCounts = data;
+                const select = document.getElementById('chapterSelect');
+                // Sort chapters numerically
+                const sortedChapters = Object.keys(data).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                for (const chapter of sortedChapters) {
+                    const count = data[chapter];
+                    const option = document.createElement('option');
+                    option.value = chapter;
+                    option.textContent = `Ch ${chapter} (${count} verses)`;
+                    select.appendChild(option);
+                }
+            });
+    }
+
+    function updateVerseMax() {
+        const chapter = document.getElementById('chapterSelect').value;
+        const input = document.getElementById('verseInput');
+        if (chapter && chapterCounts[chapter]) {
+            input.max = chapterCounts[chapter];
+            input.placeholder = `1-${chapterCounts[chapter]}`;
+        }
+    }
+
+    function displayVerseInModal(verse, title, color = '#2c3e50') {
+        document.getElementById('modalEmotion').innerText = title;
+        document.getElementById('modalEmotion').style.color = color;
+        
+        document.getElementById('modalRef').innerText = `Chapter ${verse.chapter}, Verse ${verse.verse}`;
+        document.getElementById('modalSanskrit').innerText = verse.sanskrit;
+        document.getElementById('modalHindi').innerText = verse.hindi;
+        document.getElementById('modalEnglish').innerText = verse.english;
+        
+        const modal = document.getElementById('verseModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fetchRandomVerse() {
+        fetch('/api/gita/random')
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return alert(data.error);
+                displayVerseInModal(data, 'Random Wisdom', '#764ba2');
+            })
+            .catch(err => console.error(err));
+    }
+
+    function searchVerse() {
+        const chapter = document.getElementById('chapterSelect').value;
+        const verse = document.getElementById('verseInput').value;
+        
+        if (!chapter || !verse) return alert('Please select a chapter and verse number');
+        
+        fetch(`/api/gita/search?chapter=${chapter}&verse=${verse}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return alert('Verse not found');
+                displayVerseInModal(data, 'Search Result');
+            })
+            .catch(err => console.error(err));
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', initGitaFeatures);
 </script>
 {% endblock %}
