@@ -349,8 +349,13 @@ def habits():
             streak += 1
             check_date -= timedelta(days=1)
             
-        h['streak'] = f"{streak} Days"
+        h['streak'] = streak  # Store as integer for cleaner template usage if needed, or keep string
         
+        # Calculate days completed in current year
+        current_year_prefix = today_date.strftime('%Y')
+        days_in_current_year = sum(1 for date in history if date.startswith(current_year_prefix))
+        h['days_in_current_year'] = days_in_current_year
+
         # Update status text
         if h['completed_today']:
             h['status'] = "Completed today"
@@ -539,7 +544,8 @@ def goals():
 
 @app.route('/gita')
 def gita_jar():
-    return render_template('gita.html', emotions=gita_data)
+    total_verses = sum(len(data['verses']) for data in gita_data.values())
+    return render_template('gita.html', emotions=gita_data, total_verses=total_verses)
 
 @app.route('/gita/verse/<emotion>')
 def get_gita_verse(emotion):
@@ -548,6 +554,10 @@ def get_gita_verse(emotion):
         verse = random.choice(verses)
         return jsonify({'status': 'success', 'verse': verse, 'emotion': gita_data[emotion]['label']})
     return jsonify({'status': 'error', 'message': 'Emotion not found'}), 404
+
+@app.route('/books')
+def books():
+    return render_template('books.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -23,6 +23,9 @@
                 <div class="habit-streak">
                     <i class="fa-solid fa-fire"></i> {{ habit.streak }} day streak
                 </div>
+                <div class="habit-month-count" style="font-size: 0.9rem; color: #7f8c8d; margin-top: 4px;">
+                    <i class="fa-solid fa-calendar-day"></i> {{ habit.days_in_current_year }} days this year
+                </div>
             </div>
             <form action="{{ url_for('log_habit') }}" method="POST">
                 <input type="hidden" name="habit_name" value="{{ habit.name }}">
@@ -128,7 +131,7 @@
                             <div class="habit-info-row" style="display: flex; align-items: center; gap: 15px;">
                                 <span class="habit-name">{{ habit.name }}</span>
                                 <span class="streak-badge" title="Current Streak">
-                                    <i class="fa-solid fa-fire"></i> {{ habit.streak }}
+                                    <i class="fa-solid fa-fire"></i> {{ habit.streak }} Days
                                 </span>
                             </div>
                             <div class="habit-meta">
