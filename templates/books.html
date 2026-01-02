@@ -146,14 +146,14 @@
             </div>
             <div class="book-actions-overlay">
                 <button onclick="updateProgress('{{ book._id }}', {{ book.current_page or 0 }}, {{ book.total_pages or 0 }})" class="btn-ghost" style="flex: 1; font-size: 0.8rem; padding: 8px; width: 100%;">Update</button>
-                <form action="{{ url_for('update_book_status') }}" method="POST" style="display: inline;">
+                <form action="{{ url_for('books.update_book_status') }}" method="POST" style="display: inline;">
                     <input type="hidden" name="book_id" value="{{ book._id }}">
                     <input type="hidden" name="status" value="completed">
                     <button type="submit" title="Mark as Finished" style="background: none; border: none; color: #2ecc71; font-size: 1.1rem; cursor: pointer; padding: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
                         <i class="fa-solid fa-check"></i>
                     </button>
                 </form>
-                <form id="delete-form-{{ book._id }}" action="{{ url_for('delete_book') }}" method="POST" style="display: none;">
+                <form id="delete-form-{{ book._id }}" action="{{ url_for('books.delete_book') }}" method="POST" style="display: none;">
                     <input type="hidden" name="book_id" value="{{ book._id }}">
                 </form>
                 <button onclick="confirmDeleteBook('{{ book._id }}')" title="Delete Book" style="background: none; border: none; color: #e74c3c; font-size: 1.1rem; cursor: pointer; padding: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"><i class="fa-solid fa-trash"></i></button>
@@ -182,7 +182,7 @@
                 <p class="author">{{ book.author }}</p>
             </div>
             <div class="book-actions-overlay">
-                <form id="delete-form-{{ book._id }}" action="{{ url_for('delete_book') }}" method="POST" style="display: none;">
+                <form id="delete-form-{{ book._id }}" action="{{ url_for('books.delete_book') }}" method="POST" style="display: none;">
                     <input type="hidden" name="book_id" value="{{ book._id }}">
                 </form>
                 <button onclick="confirmDeleteBook('{{ book._id }}')" title="Delete Book" style="background: none; border: none; color: #e74c3c; font-size: 1.1rem; cursor: pointer; padding: 8px; transition: transform 0.2s; width: 100%;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"><i class="fa-solid fa-trash"></i></button>
@@ -215,7 +215,7 @@
             </div>
             <div class="book-actions-overlay">
                 <button onclick="startReading('{{ book._id }}', {{ book.total_pages or 0 }})" class="btn-ghost" style="flex: 1; font-size: 0.8rem; padding: 8px; width: 100%;">Start Reading</button>
-                <form id="delete-form-{{ book._id }}" action="{{ url_for('delete_book') }}" method="POST" style="display: none;">
+                <form id="delete-form-{{ book._id }}" action="{{ url_for('books.delete_book') }}" method="POST" style="display: none;">
                     <input type="hidden" name="book_id" value="{{ book._id }}">
                 </form>
                 <button onclick="confirmDeleteBook('{{ book._id }}')" style="background: none; border: none; color: #e74c3c; font-size: 1.1rem; cursor: pointer; padding: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"><i class="fa-solid fa-trash"></i></button>
@@ -241,7 +241,7 @@
             </button>
         </div>
         
-        <form action="{{ url_for('add_book') }}" method="POST">
+        <form action="{{ url_for('books.add_book') }}" method="POST">
             <div class="modal-form-group">
                 <label class="modal-form-label">Book Title</label>
                 <input type="text" name="title" required placeholder="e.g. Atomic Habits" class="modal-form-input">
@@ -277,7 +277,7 @@
             </button>
         </div>
         
-        <form action="{{ url_for('update_book_status') }}" method="POST">
+        <form action="{{ url_for('books.update_book_status') }}" method="POST">
             <input type="hidden" name="book_id" id="startReadingBookId">
             <input type="hidden" name="status" value="reading">
             
@@ -309,7 +309,7 @@
             </button>
         </div>
         
-        <form action="{{ url_for('update_book_progress') }}" method="POST">
+        <form action="{{ url_for('books.update_book_progress') }}" method="POST">
             <input type="hidden" name="book_id" id="updateProgressBookId">
             
             <div id="totalPagesField" class="modal-form-group" style="display: none;">
@@ -358,7 +358,7 @@
         if (currentTotalPages && currentTotalPages > 0) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = "{{ url_for('update_book_status') }}";
+            form.action = "{{ url_for('books.update_book_status') }}";
             
             const idInput = document.createElement('input');
             idInput.type = 'hidden';

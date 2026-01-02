@@ -103,9 +103,9 @@
         <div class="controls-header" style="justify-content: space-between; border-bottom: none; padding-bottom: 0; margin-bottom: 15px;">
             <h2 style="margin: 0; font-size: 1.1rem; color: #333;">Yearly Overview</h2>
             <div class="year-nav">
-                <a href="{{ url_for('reminder', year=selected_year-1) }}"><i class="fa-solid fa-chevron-left"></i></a>
+                <a href="{{ url_for('reminders.reminder', year=selected_year-1) }}"><i class="fa-solid fa-chevron-left"></i></a>
                 <span class="year-display">{{ selected_year }}</span>
-                <a href="{{ url_for('reminder', year=selected_year+1) }}"><i class="fa-solid fa-chevron-right"></i></a>
+                <a href="{{ url_for('reminders.reminder', year=selected_year+1) }}"><i class="fa-solid fa-chevron-right"></i></a>
             </div>
         </div>
         
@@ -242,7 +242,7 @@
         if (days) formData.append('remind_days', days);
 
         try {
-            const response = await fetch("{{ url_for('add_reminder') }}", {
+            const response = await fetch("{{ url_for('reminders.add_reminder') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -273,7 +273,7 @@
         formData.append('id', id);
         formData.append('date', date);
         try {
-            const response = await fetch("/reminder/complete", {
+            const response = await fetch("{{ url_for('reminders.complete_reminder') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -394,7 +394,7 @@
         if (date) formData.append('date', date);
         
         try {
-            const response = await fetch("{{ url_for('delete_reminder') }}", {
+            const response = await fetch("{{ url_for('reminders.delete_reminder') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }

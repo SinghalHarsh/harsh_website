@@ -380,7 +380,7 @@
     <div class="dashboard-grid">
         <!-- Habits Card -->
         <div class="dash-card card-habits">
-            <a href="/habits" class="card-link-overlay"></a>
+            <a href="{{ url_for('habits.habits') }}" class="card-link-overlay"></a>
             <div class="dash-icon"><i class="fa-solid fa-check-double"></i></div>
             <div class="dash-title">Habits</div>
             <div class="dash-stat" id="habit-stat">{{ habits_completed }}/{{ habits_total }}</div>
@@ -409,7 +409,7 @@
 
         <!-- Goals Card -->
         <div class="dash-card card-goals">
-            <a href="/goals" class="card-link-overlay"></a>
+            <a href="{{ url_for('goals.goals') }}" class="card-link-overlay"></a>
             <div class="dash-icon"><i class="fa-solid fa-bullseye"></i></div>
             <div class="dash-title">Goals</div>
             <div class="dash-stat" id="goal-stat">{{ active_goals_count }}</div>
@@ -438,7 +438,7 @@
 
         <!-- Reminders Card -->
         <div class="dash-card card-reminders">
-            <a href="/reminder" class="card-link-overlay"></a>
+            <a href="{{ url_for('reminders.reminder') }}" class="card-link-overlay"></a>
             <div class="dash-icon"><i class="fa-solid fa-bell"></i></div>
             <div class="dash-title">Reminders</div>
             <div class="dash-stat" id="reminder-stat">{{ reminders_today_count }}</div>
@@ -466,7 +466,7 @@
         </div>
         
         <!-- Quotes Card -->
-        <a href="/quotes" class="dash-card card-quotes" style="justify-content: center;">
+        <a href="{{ url_for('main.quotes') }}" class="dash-card card-quotes" style="justify-content: center;">
             {% if selected_quote %}
                 {% if selected_quote.type == 'text' %}
                     <div class="dash-icon" style="margin-bottom: 10px;"><i class="fa-solid fa-quote-left"></i></div>
@@ -595,7 +595,7 @@ function toggleHabit(event, habitName) {
     const btn = event.currentTarget;
     const item = btn.closest('.habit-item');
     
-    fetch('/habits/log', {
+    fetch("{{ url_for('habits.log_habit') }}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -633,7 +633,7 @@ function completeReminder(event, id, date) {
     formData.append('mode', 'instance');
     formData.append('date', date);
     
-    fetch('/reminder/delete', {
+    fetch("{{ url_for('reminders.delete_reminder') }}", {
         method: 'POST',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -667,7 +667,7 @@ function completeGoal(event, id) {
     const formData = new FormData();
     formData.append('goal_id', id);
     
-    fetch('/goals/complete', {
+    fetch("{{ url_for('goals.complete_goal') }}", {
         method: 'POST',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'

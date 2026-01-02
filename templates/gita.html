@@ -178,7 +178,7 @@
 <script>
     function openVerse(emotion) {
         // Show loading state or just fetch
-        fetch(`/gita/verse/${emotion}`)
+        fetch("{{ url_for('gita.get_gita_verse', emotion='') }}" + emotion)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -235,7 +235,7 @@
     let chapterCounts = {};
 
     function initGitaFeatures() {
-        fetch('/api/gita/chapters')
+        fetch("{{ url_for('gita.gita_chapters') }}")
             .then(res => res.json())
             .then(data => {
                 chapterCounts = data;
@@ -277,7 +277,7 @@
     }
 
     function fetchRandomVerse() {
-        fetch('/api/gita/random')
+        fetch("{{ url_for('gita.gita_random') }}")
             .then(res => res.json())
             .then(data => {
                 if (data.error) return alert(data.error);
@@ -292,7 +292,7 @@
         
         if (!chapter || !verse) return alert('Please select a chapter and verse number');
         
-        fetch(`/api/gita/search?chapter=${chapter}&verse=${verse}`)
+        fetch("{{ url_for('gita.gita_search') }}?chapter=${chapter}&verse=${verse}")
             .then(res => res.json())
             .then(data => {
                 if (data.error) return alert('Verse not found');

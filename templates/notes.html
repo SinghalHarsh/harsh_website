@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
+
+{% block title %}Notes{% endblock %}
+
+{% block content %}
+
+{{ page_header('Notes', 'Capture your thoughts.') }}
+
+<div class="habit-container">
+    
+    <!-- Add Note Form -->
+    <div style="max-width: 600px; margin: 0 auto 40px;">
+        <form method="POST" action="{{ url_for('notes.notes') }}" style="background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee;">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <input type="text" name="title" placeholder="Title" style="width: 100%; padding: 10px; border: none; font-weight: 600; font-size: 1.1rem; outline: none; font-family: inherit;">
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <textarea name="content" placeholder="Take a note..." required style="width: 100%; padding: 10px; border: none; resize: none; outline: none; min-height: 80px; font-family: inherit; font-size: 1rem;"></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn-primary" style="border-radius: 20px; padding: 8px 24px;">Add Note</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notes Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px;">
+        {% if notes %}
+            {% for note in notes %}
+            <div class="goal-card" style="display: flex; flex-direction: column; height: auto; min-height: 150px; position: relative;">
+                
+                {% if note.title %}
+                <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 10px; color: #2d3748;">
+                    {{ note.title }}
+                </div>
+                {% endif %}
+                
+                <div class="note-content" style="white-space: pre-wrap; color: #4a5568; line-height: 1.6; flex-grow: 1; margin-bottom: 15px;">{{ note.content }}</div>
+                
+                <div class="note-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 15px; border-top: 1px solid #f7fafc;">
+                    <small style="color: #a0aec0; font-size: 0.8rem;">{{ note.created_at.strftime('%b %d, %Y') }}</small>
+                    <form method="POST" action="{{ url_for('notes.delete_note', note_id=note._id) }}">
+                        <button type="submit" class="delete-btn" title="Delete Note" onclick="return confirm('Delete this note?')" style="background: none; border: none; color: #cbd5e0; cursor: pointer; transition: color 0.2s;">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #a0aec0;">
+                <i class="fa-regular fa-note-sticky" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>Your notes will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<style>
+    .goal-card:hover .delete-btn {
+        color: #e53e3e !important;
+    }
+</style>
+
+{% endblock %}

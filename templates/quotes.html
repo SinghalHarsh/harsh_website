@@ -27,5 +27,22 @@
                 <p style="color: #999; font-style: italic;">No quotes available.</p>
             {% endif %}
         </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="document.getElementById('upload-form').style.display='block'" class="btn-ghost" style="font-size: 0.9rem; opacity: 0.7;">
+                <i class="fa-solid fa-plus"></i> Add Quote Image
+            </button>
+            <div id="upload-form" style="display: none; margin-top: 15px; animation: fadeIn 0.3s ease;">
+                <form method="POST" action="{{ url_for('main.upload_quote') }}" enctype="multipart/form-data" style="display: inline-block; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                    <div style="margin-bottom: 15px;">
+                        <input type="file" name="file" accept="image/*" required style="display: block; width: 100%;">
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button type="submit" class="btn-primary" style="padding: 6px 16px; font-size: 0.9rem;">Upload</button>
+                        <button type="button" onclick="document.getElementById('upload-form').style.display='none'" class="btn-ghost" style="padding: 6px 16px; font-size: 0.9rem;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}

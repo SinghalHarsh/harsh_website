@@ -27,7 +27,7 @@
                     <i class="fa-solid fa-calendar-day"></i> {{ habit.days_in_current_year }} days this year
                 </div>
             </div>
-            <form action="{{ url_for('log_habit') }}" method="POST">
+            <form action="{{ url_for('habits.log_habit') }}" method="POST">
                 <input type="hidden" name="habit_name" value="{{ habit.name }}">
                 <button type="submit" class="check-btn {{ 'completed' if habit.completed_today else '' }}">
                     <i class="fa-solid fa-check"></i>
@@ -45,7 +45,7 @@
     <div class="insights-wrapper">
         <div class="controls-header">
             <div class="habit-selector">
-                <form action="{{ url_for('habits') }}" method="GET" id="habitForm">
+                <form action="{{ url_for('habits.habits') }}" method="GET" id="habitForm">
                     <input type="hidden" name="year" value="{{ selected_year }}">
                     <select name="habit" onchange="document.getElementById('habitForm').submit()">
                         <option value="overall" {% if is_overall %}selected{% endif %}>Overall Progress</option>
@@ -59,9 +59,9 @@
             </div>
             
             <div class="year-nav">
-                <a href="{{ url_for('habits', habit='overall' if is_overall else selected_habit.name, year=selected_year-1) }}"><i class="fa-solid fa-chevron-left"></i></a>
+                <a href="{{ url_for('habits.habits', habit='overall' if is_overall else selected_habit.name, year=selected_year-1) }}"><i class="fa-solid fa-chevron-left"></i></a>
                 <span class="year-display">{{ selected_year }}</span>
-                <a href="{{ url_for('habits', habit='overall' if is_overall else selected_habit.name, year=selected_year+1) }}"><i class="fa-solid fa-chevron-right"></i></a>
+                <a href="{{ url_for('habits.habits', habit='overall' if is_overall else selected_habit.name, year=selected_year+1) }}"><i class="fa-solid fa-chevron-right"></i></a>
             </div>
         </div>
 
@@ -247,7 +247,7 @@
         formData.append('active', 'false');
         formData.append('color', 'text-green');
 
-        fetch("{{ url_for('add_habit') }}", {
+        fetch("{{ url_for('habits.add_habit') }}", {
             method: 'POST',
             body: formData,
             headers: {
@@ -269,7 +269,7 @@
             const formData = new FormData();
             formData.append('habit_name', name);
 
-            fetch("{{ url_for('delete_habit') }}", {
+            fetch("{{ url_for('habits.delete_habit') }}", {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -302,12 +302,12 @@
         chip.innerHTML = `
             <span>${name}</span>
             <div class="chip-actions">
-                <form action="{{ url_for('toggle_habit') }}" method="POST" style="margin:0;">
+                <form action="{{ url_for('habits.toggle_habit') }}" method="POST" style="margin:0;">
                     <input type="hidden" name="habit_name" value="${name}">
                     <input type="hidden" name="active" value="on">
                     <button type="submit" title="Start Tracking" class="btn-add"><i class="fa-solid fa-plus"></i></button>
                 </form>
-                <form action="{{ url_for('delete_habit') }}" method="POST" onsubmit="event.preventDefault(); deleteIdea('${name}', this.querySelector('button'));" style="margin:0;">
+                <form action="{{ url_for('habits.delete_habit') }}" method="POST" onsubmit="event.preventDefault(); deleteIdea('${name}', this.querySelector('button'));" style="margin:0;">
                     <input type="hidden" name="habit_name" value="${name}">
                     <button type="submit" class="btn-delete"><i class="fa-solid fa-xmark"></i></button>
                 </form>
@@ -356,7 +356,7 @@
         formData.append('color', 'text-green');
 
         try {
-            const response = await fetch("{{ url_for('add_habit') }}", {
+            const response = await fetch("{{ url_for('habits.add_habit') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -385,7 +385,7 @@
         formData.append('active', isActive ? 'on' : 'off');
 
         try {
-            const response = await fetch("{{ url_for('toggle_habit') }}", {
+            const response = await fetch("{{ url_for('habits.toggle_habit') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -423,7 +423,7 @@
         formData.append('habit_name', name);
         
         try {
-            const response = await fetch("{{ url_for('delete_habit') }}", {
+            const response = await fetch("{{ url_for('habits.delete_habit') }}", {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
