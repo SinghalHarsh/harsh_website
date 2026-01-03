@@ -71,15 +71,6 @@ def home():
                            todays_reminders=todays_reminders,
                            selected_quote=selected_quote)
 
-@main_bp.route('/about')
-def about():
-    return render_template('about.html')
-
-@main_bp.route('/blog')
-def blog():
-    posts = list(db.blogs.find())
-    return render_template('blog.html', posts=posts)
-
 @main_bp.route('/quotes')
 def quotes():
     # 1. Get text quotes from DB

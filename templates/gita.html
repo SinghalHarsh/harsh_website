@@ -11,43 +11,6 @@
         padding: 20px;
         text-align: center;
     }
-    .emotions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 25px;
-        margin-bottom: 40px;
-    }
-    .emotion-card {
-        background: #fff;
-        border-radius: 15px;
-        padding: 30px 20px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        border: 1px solid rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-    }
-    .emotion-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-    }
-    .emotion-icon {
-        font-size: 2.5rem;
-        margin-bottom: 10px;
-    }
-    .emotion-label {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #34495e;
-    }
-    .emotion-count {
-        font-size: 0.85rem;
-        color: #95a5a6;
-        margin-top: -10px;
-    }
     
     /* Modal Styles - Using global styles from style.css */
     .verse-header {
@@ -80,6 +43,26 @@
         white-space: pre-line;
         font-family: 'Poppins', sans-serif;
         line-height: 1.8;
+    }
+    .copy-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7f8c8d;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .copy-btn:hover {
+        background: #e0e0e0;
+        color: #2c3e50;
     }
     .hindi {
         font-size: 1.15rem;
@@ -126,9 +109,6 @@
     }
 
     @media (max-width: 768px) {
-        .emotions-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
         .modal-content {
             padding: 25px;
         }
@@ -138,48 +118,41 @@
     }
 </style>
 
-{{ page_header('Gita Wisdom Jar', 'Select an emotion to receive guidance from the Bhagavad Gita.') }}
+{{ page_header('Gita Wisdom', 'Receive a random verse from the Bhagavad Gita.') }}
 
-<div class="gita-container">
+<div class="gita-container" style="display: flex; justify-content: center; align-items: center; min-height: 50vh;">
     
     <!-- Random Verse Button -->
     <div style="text-align: center;">
-        <button class="wisdom-jar-btn" onclick="fetchRandomVerse()" style="flex-direction: column; gap: 5px; padding: 15px 40px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="wisdom-jar-btn" onclick="fetchRandomVerse()" style="flex-direction: column; gap: 5px; padding: 25px 50px; font-size: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 15px;">
                 <i class="fa-solid fa-scroll"></i>
                 Open Wisdom Jar
             </div>
-            <div style="font-size: 0.6rem; font-weight: 400; opacity: 0.8;">(Drawing from {{ total_verses }} verses)</div>
+            <div style="font-size: 0.8rem; font-weight: 400; opacity: 0.9; margin-top: 5px;">(Drawing from {{ total_verses }} verses)</div>
         </button>
     </div>
 
-    <div class="emotions-grid">
-        {% for key, data in emotions.items() %}
-        <div class="emotion-card" onclick="openVerse('{{ key }}')" style="border-top: 5px solid {{ data.color }}">
-            <div class="emotion-icon" style="color: {{ data.color }}">
-                <i class="{{ data.icon }}"></i>
-            </div>
-            <div class="emotion-label">{{ data.label }}</div>
-            <div class="emotion-count">{{ data.verses|length }} verses</div>
-        </div>
-        {% endfor %}
-    </div>
 </div>
 
 <!-- Modal -->
 <div class="modal-overlay" id="verseModal">
-    <div class="modal-content gita-modal">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modalEmotion" style="text-transform: uppercase; letter-spacing: 1px;"></h3>
-            <button id="closeModalBtn" class="modal-close-btn">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </div>
+    <div class="modal-content gita-modal" style="position: relative; padding-top: 40px;">
+        <button id="closeModalBtn" class="modal-close-btn" style="position: absolute; top: 15px; right: 15px; z-index: 10;">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <h3 class="modal-title" id="modalEmotion" style="display: none;"></h3>
+        
         <div class="verse-header" style="border: none; padding: 0; margin-bottom: 20px;">
             <div class="verse-ref" id="modalRef"></div>
         </div>
         <div class="verse-text">
-            <div class="sanskrit" id="modalSanskrit"></div>
+            <div style="position: relative; margin-bottom: 20px;">
+                <div class="sanskrit" id="modalSanskrit" style="margin-bottom: 0; padding: 0 40px;"></div>
+                <button onclick="copySanskrit(this)" class="copy-btn" title="Copy Shloka">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+            </div>
             <div class="hindi" id="modalHindi"></div>
             <div class="english" id="modalEnglish"></div>
         </div>
@@ -187,33 +160,6 @@
 </div>
 
 <script>
-    function openVerse(emotion) {
-        // Show loading state or just fetch
-        fetch("{{ url_for('gita.get_gita_verse', emotion='') }}" + emotion)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const verse = data.verse;
-                    document.getElementById('modalEmotion').innerText = data.emotion;
-                    
-                    const card = document.querySelector(`.emotion-card[onclick="openVerse('${emotion}')"]`);
-                    if (card) {
-                        document.getElementById('modalEmotion').style.color = getComputedStyle(card).borderTopColor;
-                    }
-                    
-                    document.getElementById('modalRef').innerText = `Chapter ${verse.chapter}, Verse ${verse.verse}`;
-                    document.getElementById('modalSanskrit').innerText = verse.sanskrit;
-                    document.getElementById('modalHindi').innerText = verse.hindi;
-                    document.getElementById('modalEnglish').innerText = verse.english;
-                    
-                    const modal = document.getElementById('verseModal');
-                    modal.classList.add('active');
-                    document.body.style.overflow = 'hidden'; // Prevent scrolling
-                }
-            })
-            .catch(err => console.error('Error fetching verse:', err));
-    }
-
     // Modal Closing Logic
     const modal = document.getElementById('verseModal');
     const closeBtn = document.getElementById('closeModalBtn');
@@ -243,10 +189,13 @@
     });
 
     function displayVerseInModal(verse, title, color = '#2c3e50') {
-        document.getElementById('modalEmotion').innerText = title;
-        document.getElementById('modalEmotion').style.color = color;
+        document.getElementById('modalEmotion').innerText = '';
+        document.getElementById('modalEmotion').style.display = 'none';
         
-        document.getElementById('modalRef').innerText = `Chapter ${verse.chapter}, Verse ${verse.verse}`;
+        // Display Chapter Title if available
+        const chapterTitle = verse.chapter_title ? verse.chapter_title : '';
+        document.getElementById('modalRef').innerHTML = `<div style="font-size: 0.9rem; color: #95a5a6; margin-bottom: 5px;">Chapter ${verse.chapter}: ${chapterTitle}</div>Verse ${verse.verse}`;
+        
         document.getElementById('modalSanskrit').innerText = verse.sanskrit;
         document.getElementById('modalHindi').innerText = verse.hindi;
         document.getElementById('modalEnglish').innerText = verse.english;
@@ -264,6 +213,24 @@
                 displayVerseInModal(data, 'Random Wisdom', '#FF5E62');
             })
             .catch(err => console.error(err));
+    }
+
+    function copySanskrit(btn) {
+        const text = document.getElementById('modalSanskrit').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            btn.style.color = '#2ecc71';
+            btn.style.borderColor = '#2ecc71';
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
     }
 </script>
 {% endblock %}

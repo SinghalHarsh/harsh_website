@@ -267,11 +267,7 @@
 .reminder-action .fa-trash:hover {
     color: #e53e3e;
 }
-/* Rotating button animation for Daily Quotes */
-.rotate-btn:active {
-    transform: rotate(360deg) scale(1.1);
-    transition: transform 0.5s cubic-bezier(0.4,2,0.6,1);
-}
+
 :root {
     --primary-blue: #4361ee;
     --light-blue-bg: #eef2ff;
