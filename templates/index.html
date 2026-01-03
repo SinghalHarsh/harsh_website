@@ -3,7 +3,133 @@
 {% block title_wrapper %}{{ site_name }}{% endblock %}
 
 {% block content %}
+<div id="balloon-container"></div>
 <style>
+    #balloon-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 9990; /* High z-index to ensure they are on top and clickable */
+    }
+    .balloon {
+        position: absolute;
+        bottom: -100px;
+        width: 60px; /* Even larger */
+        height: 75px;
+        border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+        opacity: 0.8; /* More visible */
+        animation: floatUp linear infinite;
+        cursor: pointer;
+        pointer-events: auto; /* Critical: allows clicking despite container pointer-events: none */
+        transition: transform 0.1s;
+        z-index: 9991;
+    }
+    .balloon:hover {
+        transform: scale(1.2) !important;
+        opacity: 0.9;
+    }
+    .balloon::before {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 10px;
+        background-color: inherit;
+    }
+    .balloon::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 8px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: rgba(255,255,255,0.3);
+        transform: rotate(30deg);
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+        100% { transform: translateY(-120vh) rotate(20deg); opacity: 0; }
+    }
+    @keyframes floatWord {
+        0% { transform: translateY(0) scale(0.5); opacity: 0; }
+        20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+        100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
+    .popped-word {
+        position: fixed;
+        font-weight: 800;
+        font-size: 2rem;
+        pointer-events: none;
+        z-index: 10000;
+        text-shadow: 2px 2px 0px #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+        animation: floatWord 2s ease-out forwards;
+    }
+    
+    .collected-words-container {
+        margin-top: 20px;
+        text-align: center;
+        padding: 0;
+        background: transparent;
+        border: none;
+        position: relative;
+        z-index: 10;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .collected-title {
+        display: none;
+    }
+    .words-row {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        min-height: 30px;
+        flex-wrap: wrap;
+    }
+    .collected-word-pill {
+        padding: 5px 10px;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        color: #95a5a6;
+        font-size: 0.9rem;
+        border: none;
+        position: relative;
+        overflow: visible;
+        transition: all 0.3s ease;
+        animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .collected-word-pill:hover {
+        transform: translateY(-2px);
+        color: #3498db;
+        background: transparent;
+        box-shadow: none;
+    }
+    .collected-word-pill::before {
+        display: none;
+    }
+    @keyframes popIn {
+        from { transform: scale(0); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-5px) rotate(-5deg); }
+        50% { transform: translateX(5px) rotate(5deg); }
+        75% { transform: translateX(-5px) rotate(-5deg); }
+        100% { transform: translateX(0); }
+    }
+
     .dashboard-container {
         max-width: 1000px;
         margin: 0 auto;
@@ -20,6 +146,21 @@
         margin-bottom: 10px;
         letter-spacing: -1px;
     }
+    
+    .gradient-text {
+        background: linear-gradient(45deg, #2c3e50, #3498db, #2c3e50);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientText 3s ease infinite;
+    }
+    
+    @keyframes gradientText {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
     .hero-subtitle {
         font-size: 1.2rem;
         color: #7f8c8d;
@@ -30,12 +171,17 @@
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 30px;
     }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
     .dash-card {
         background: #fff;
         border-radius: 20px;
         padding: 30px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         text-decoration: none;
         color: inherit;
         display: flex;
@@ -45,10 +191,15 @@
         border: 1px solid rgba(0,0,0,0.03);
         position: relative;
         overflow: hidden;
+        animation: slideIn 0.8s ease-out backwards;
     }
+    
+    .dash-card:nth-child(1) { animation-delay: 0.1s; }
+    .dash-card:nth-child(2) { animation-delay: 0.2s; }
+    .dash-card:nth-child(3) { animation-delay: 0.3s; }
     .dash-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        transform: translateY(-15px) scale(1.03);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.12);
     }
     .dash-icon {
         width: 60px;
@@ -60,6 +211,10 @@
         font-size: 1.8rem;
         margin-bottom: 20px;
         background: #f8f9fa;
+        transition: transform 0.3s ease;
+    }
+    .dash-card:hover .dash-icon {
+        transform: scale(1.1) rotate(10deg);
     }
     .dash-title {
         font-size: 1.4rem;
@@ -79,13 +234,49 @@
     }
     
     /* Card Specific Colors */
+    @keyframes pulseHabit {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
     .card-habits .dash-icon { color: #3498db; background: #eaf6fd; }
+    .card-habits .dash-icon i { 
+        display: inline-block; 
+        animation: pulseHabit 1.5s infinite ease-in-out;
+        transform-origin: center;
+    }
     .card-habits:hover { border-bottom: 5px solid #3498db; }
     
     .card-goals .dash-icon { color: #e67e22; background: #fdf2e9; }
     .card-goals:hover { border-bottom: 5px solid #e67e22; }
     
+    @keyframes spinTarget {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .card-goals .dash-icon i {
+        display: inline-block;
+        animation: spinTarget 3s linear infinite;
+        transform-origin: 42% 42%; /* Off-center to make rotation visible */
+    }
+    
+    @keyframes ringBell {
+        0% { transform: rotate(0); }
+        10% { transform: rotate(20deg); }
+        20% { transform: rotate(-20deg); }
+        30% { transform: rotate(15deg); }
+        40% { transform: rotate(-15deg); }
+        50% { transform: rotate(10deg); }
+        60% { transform: rotate(-10deg); }
+        70% { transform: rotate(0); }
+        100% { transform: rotate(0); }
+    }
     .card-reminders .dash-icon { color: #9b59b6; background: #f5eef8; }
+    .card-reminders .dash-icon i {
+        display: inline-block;
+        transform-origin: top center;
+        animation: ringBell 2.5s infinite ease-in-out;
+    }
     .card-reminders:hover { border-bottom: 5px solid #9b59b6; }
 
     .card-quotes .dash-icon { color: #e74c3c; background: #fdedec; }
@@ -103,7 +294,15 @@
         position: relative;
         transition: color 0.3s;
         user-select: none;
+        animation: colorCycle 4s infinite;
     }
+    
+    @keyframes colorCycle {
+        0% { color: #3498db; }
+        50% { color: #9b59b6; }
+        100% { color: #3498db; }
+    }
+
     .interactive-letter:active {
         cursor: grabbing;
     }
@@ -373,8 +572,8 @@
 
 <div class="dashboard-container">
     <div class="hero-section">
-        <h1 class="hero-title">Welcome back, <span class="interactive-name">{% for letter in "Harsh" %}<span class="interactive-letter">{{ letter }}</span>{% endfor %}</span>!</h1>
-        <p class="hero-subtitle">Here's what's happening today.</p>
+        <h1 class="hero-title"><span class="gradient-text">Welcome back,</span> <span class="interactive-name">{% for letter in "Harsh" %}<span class="interactive-letter">{{ letter }}</span>{% endfor %}</span>!</h1>
+        <p class="hero-subtitle" id="typing-subtitle"></p>
     </div>
 
     <div class="dashboard-grid">
@@ -465,28 +664,13 @@
             {% endif %}
         </div>
         
-        <!-- Quotes Card -->
-        <a href="{{ url_for('main.quotes') }}" class="dash-card card-quotes" style="justify-content: center;">
-            {% if selected_quote %}
-                {% if selected_quote.type == 'text' %}
-                    <div class="dash-icon" style="margin-bottom: 10px;"><i class="fa-solid fa-quote-left"></i></div>
-                    <div style="font-size: 1.1rem; font-style: italic; color: #34495e; margin-bottom: 10px; line-height: 1.4;">
-                        "{{ selected_quote.data.text }}"
-                    </div>
-                    <div style="font-size: 0.9rem; font-weight: 600; color: #7f8c8d;">
-                        - {{ selected_quote.data.author }}
-                    </div>
-                {% elif selected_quote.type == 'image' %}
-                    <img src="{{ url_for('static', filename='images/quotes/' + selected_quote.filename) }}" 
-                         alt="Quote" 
-                         style="max-width: 100%; max-height: 180px; border-radius: 8px; object-fit: contain;">
-                {% endif %}
-            {% else %}
-                <div class="dash-icon"><i class="fa-solid fa-quote-left"></i></div>
-                <div class="dash-title">Quotes</div>
-                <div class="dash-desc">No quotes available</div>
-            {% endif %}
-        </a>
+
+    </div>
+
+    <div class="collected-words-container" id="collected-words">
+        <div class="words-row" id="words-row">
+            <!-- Words go here -->
+        </div>
     </div>
 </div>
 
@@ -588,10 +772,50 @@ letters.forEach(letter => {
     window.addEventListener('touchend', handleEnd);
 });
 
+// Confetti Effect
+function createConfetti(x, y) {
+    const colors = ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#ff7675', '#fdcb6e'];
+    // Massive particle count
+    for (let i = 0; i < 250; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.position = 'fixed';
+        confetti.style.left = x + 'px';
+        confetti.style.top = y + 'px';
+        // Even larger particles
+        confetti.style.width = Math.random() * 14 + 6 + 'px';
+        confetti.style.height = Math.random() * 14 + 6 + 'px';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        // Mix of circles and squares
+        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        confetti.style.pointerEvents = 'none';
+        confetti.style.zIndex = '9999';
+        document.body.appendChild(confetti);
+
+        const angle = Math.random() * Math.PI * 2;
+        // Huge velocity for screen-filling explosion
+        const velocity = Math.random() * 600 + 200;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        // Add rotation
+        const rot = Math.random() * 720 - 360;
+
+        confetti.animate([
+            { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+            { transform: `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(0.5)`, opacity: 0 }
+        ], {
+            // Very long duration (2-4 seconds)
+            duration: Math.random() * 2000 + 2000,
+            easing: 'cubic-bezier(0.25, 1, 0.5, 1)' // Decelerate but keep moving
+        }).onfinish = () => confetti.remove();
+    }
+}
+
 function toggleHabit(event, habitName) {
     event.preventDefault(); // Prevent link click
     event.stopPropagation();
     
+    createConfetti(event.clientX, event.clientY);
+
     const btn = event.currentTarget;
     const item = btn.closest('.habit-item');
     
@@ -625,6 +849,8 @@ function completeReminder(event, id, date) {
     event.preventDefault();
     event.stopPropagation();
     
+    createConfetti(event.clientX, event.clientY);
+
     const btn = event.currentTarget;
     const item = btn.closest('.reminder-item');
     
@@ -661,6 +887,8 @@ function completeGoal(event, id) {
     event.preventDefault();
     event.stopPropagation();
     
+    createConfetti(event.clientX, event.clientY);
+
     const btn = event.currentTarget;
     const item = btn.closest('.goal-item');
     
@@ -689,5 +917,186 @@ function completeGoal(event, id) {
     })
     .catch(err => console.error('Error:', err));
 }
+
+// Number Counter Animation
+function animateValue(obj, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = end;
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Animate simple stats
+    ['goal-stat', 'reminder-stat'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            const finalValue = parseInt(el.innerText);
+            if(!isNaN(finalValue) && finalValue > 0) {
+                animateValue(el, 0, finalValue, 1500);
+            }
+        }
+    });
+
+    // Animate Habit Stat (Format: X/Y)
+    const habitEl = document.getElementById('habit-stat');
+    if(habitEl) {
+        const parts = habitEl.innerText.split('/');
+        if(parts.length === 2) {
+            const completed = parseInt(parts[0]);
+            const total = parts[1];
+            
+            let startTimestamp = null;
+            const duration = 1500;
+            
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * completed);
+                habitEl.innerHTML = `${current}/${total}`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    habitEl.innerHTML = `${completed}/${total}`;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    }
+    // Typing Effect
+    const text = "Here's what's happening today.";
+    const subtitleEl = document.getElementById('typing-subtitle');
+    let i = 0;
+    function typeWriter() {
+        if (i < text.length) {
+            subtitleEl.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(typeWriter, 50);
+        }
+    }
+    typeWriter();
+
+    // Daily Balloon Logic
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `balloon_words_${today}`;
+    let collectedWords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    const wordsRow = document.getElementById('words-row');
+    
+    function renderWords() {
+        wordsRow.innerHTML = '';
+        collectedWords.forEach(word => {
+            const pill = document.createElement('div');
+            pill.className = 'collected-word-pill';
+            pill.innerText = word;
+            wordsRow.appendChild(pill);
+        });
+        
+        if (collectedWords.length === 0) {
+            wordsRow.innerHTML = '<span style="color: #bdc3c7; font-style: italic;">Pop balloons to reveal wisdom...</span>';
+        }
+    }
+    
+    renderWords();
+
+    // Balloon Animation
+    const balloonWords = [
+        "Focus", "Strength", "Peace", "Joy", "Growth", "Power", "Calm", "Win", 
+        "Breathe", "Smile", "Hope", "Love", "Dream", "Believe", "Courage", 
+        "Wisdom", "Grace", "Light", "Energy", "Flow", "Trust", "Magic", 
+        "Spark", "Bloom", "Rise", "Shine", "Kindness", "Patience", "Balance"
+    ];
+    
+    function createBalloon() {
+        const container = document.getElementById('balloon-container');
+        if (!container) return;
+        
+        const balloon = document.createElement('div');
+        balloon.classList.add('balloon');
+        
+        const left = Math.random() * 100;
+        const duration = Math.random() * 5 + 10; // 10-15s
+        const size = Math.random() * 0.6 + 1.0; // Scale 1.0 to 1.6
+        const colors = ['#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ffeaa7'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const word = balloonWords[Math.floor(Math.random() * balloonWords.length)];
+        
+        balloon.style.left = left + '%';
+        balloon.style.animationDuration = duration + 's';
+        balloon.style.transform = `scale(${size})`;
+        balloon.style.backgroundColor = color;
+        balloon.dataset.word = word;
+        
+        // Pop interaction
+        balloon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (collectedWords.length >= 3) {
+                // Shake animation to indicate limit reached
+                balloon.style.animation = 'none';
+                balloon.offsetHeight; /* trigger reflow */
+                balloon.style.animation = 'shake 0.5s';
+                
+                // Show temporary tooltip
+                const tooltip = document.createElement('div');
+                tooltip.innerText = "Daily limit reached!";
+                tooltip.style.position = 'fixed';
+                tooltip.style.left = e.clientX + 'px';
+                tooltip.style.top = (e.clientY - 40) + 'px';
+                tooltip.style.background = 'rgba(0,0,0,0.7)';
+                tooltip.style.color = '#fff';
+                tooltip.style.padding = '5px 10px';
+                tooltip.style.borderRadius = '5px';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.zIndex = '10001';
+                document.body.appendChild(tooltip);
+                setTimeout(() => tooltip.remove(), 1000);
+                return;
+            }
+            
+            // Create pop visual
+            createConfetti(e.clientX, e.clientY);
+            
+            // Show word
+            const wordEl = document.createElement('div');
+            wordEl.classList.add('popped-word');
+            wordEl.innerText = word;
+            wordEl.style.left = e.clientX + 'px';
+            wordEl.style.top = e.clientY + 'px';
+            wordEl.style.color = color;
+            document.body.appendChild(wordEl);
+            
+            // Add to collection
+            collectedWords.push(word);
+            localStorage.setItem(storageKey, JSON.stringify(collectedWords));
+            renderWords();
+            
+            // Remove word after animation
+            setTimeout(() => wordEl.remove(), 1500);
+            
+            // Remove balloon
+            balloon.remove();
+        });
+        
+        container.appendChild(balloon);
+        
+        setTimeout(() => {
+            if(balloon.parentNode) balloon.remove();
+        }, duration * 1000);
+    }
+    
+    // Create a balloon every 2 seconds
+    setInterval(createBalloon, 2000);
+    // Create a few immediately
+    for(let j=0; j<5; j++) setTimeout(createBalloon, j*300);
+});
 </script>
 {% endblock %}

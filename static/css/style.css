@@ -292,9 +292,17 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--main-bg);
+    background: linear-gradient(-45deg, var(--main-bg), #eef2ff, var(--main-bg), #eef2ff);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     color: var(--text-dark);
     font-size: 13px;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* Top Bar */
