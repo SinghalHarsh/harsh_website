@@ -16,6 +16,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")
 
+@app.context_processor
+def inject_site_name():
+    return {'site_name': 'Harsh Website'}
+
 # Register blueprints
 app.register_blueprint(main_bp)
 app.register_blueprint(goals_bp)

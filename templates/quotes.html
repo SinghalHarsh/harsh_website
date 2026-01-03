@@ -4,7 +4,11 @@
 {% block title %}Quotes{% endblock %}
 
 {% block content %}
-    {{ page_header('Daily Quotes', 'Inspiration for the day.') }}
+    {% call page_header('Daily Quotes', 'Inspiration for the day.') %}
+        <button onclick="openAddQuoteModal()" class="btn-primary" style="padding: 8px 16px; border-radius: 20px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+            <i class="fa-solid fa-plus"></i> Add Quote
+        </button>
+    {% endcall %}
     
     <div class="habit-container">
         <div class="section-header" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 18px; margin-bottom: 16px;">
@@ -14,7 +18,7 @@
             </button>
         </div>
 
-        <div class="habit-card" style="text-align: center; padding: 56px 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; max-width: 900px; margin: 0 auto;">
+        <div class="habit-card" style="text-align: center; padding: 56px 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; max-width: 900px; margin: 0 auto; position: relative;">
             {% if content %}
                 {% if content.type == 'text' %}
                     <i class="fa-solid fa-quote-left" style="font-size: 2rem; color: #eee; margin-bottom: 20px;"></i>
@@ -23,26 +27,55 @@
                 {% elif content.type == 'image' %}
                     <img src="{{ url_for('static', filename='images/quotes/' + content.filename) }}" alt="Quote" style="max-width: 100%; max-height: 600px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                 {% endif %}
+                
+                <div style="position: absolute; bottom: 10px; right: 15px; font-size: 0.75rem; color: #cbd5e0;">
+                    {{ total_quotes }} quotes
+                </div>
             {% else %}
                 <p style="color: #999; font-style: italic;">No quotes available.</p>
             {% endif %}
         </div>
+    </div>
 
-        <div style="text-align: center; margin-top: 30px;">
-            <button onclick="document.getElementById('upload-form').style.display='block'" class="btn-ghost" style="font-size: 0.9rem; opacity: 0.7;">
-                <i class="fa-solid fa-plus"></i> Add Quote Image
-            </button>
-            <div id="upload-form" style="display: none; margin-top: 15px; animation: fadeIn 0.3s ease;">
-                <form method="POST" action="{{ url_for('main.upload_quote') }}" enctype="multipart/form-data" style="display: inline-block; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                    <div style="margin-bottom: 15px;">
-                        <input type="file" name="file" accept="image/*" required style="display: block; width: 100%;">
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button type="submit" class="btn-primary" style="padding: 6px 16px; font-size: 0.9rem;">Upload</button>
-                        <button type="button" onclick="document.getElementById('upload-form').style.display='none'" class="btn-ghost" style="padding: 6px 16px; font-size: 0.9rem;">Cancel</button>
-                    </div>
-                </form>
+    <!-- Add Quote Modal -->
+    <div class="modal-overlay" id="addQuoteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Quote</h3>
+                <button onclick="closeAddQuoteModal()" class="modal-close-btn">
+                    <i class="fa-solid fa-times"></i>
+                </button>
             </div>
+            
+            <form action="{{ url_for('main.upload_quote') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body" style="margin-bottom: 20px;">
+                     <div class="form-group">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 500; color: #4a5568;">Quote Image</label>
+                        <input type="file" name="file" accept="image/*" required style="display: block; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        <small style="color: #718096; margin-top: 5px; display: block;">Upload a .jpg or .png file</small>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeAddQuoteModal()" class="btn-modal-cancel">Cancel</button>
+                    <button type="submit" class="btn-modal-submit">Upload</button>
+                </div>
+            </form>
         </div>
     </div>
+
+    <script>
+        function openAddQuoteModal() {
+            document.getElementById('addQuoteModal').classList.add('active');
+        }
+        function closeAddQuoteModal() {
+            document.getElementById('addQuoteModal').classList.remove('active');
+        }
+        
+        // Close on outside click
+        document.getElementById('addQuoteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddQuoteModal();
+            }
+        });
+    </script>
 {% endblock %}

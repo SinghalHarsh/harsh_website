@@ -5,7 +5,11 @@
 
 {% block content %}
 
-{{ page_header('Books', 'A collection of my reading list.') }}
+{% call page_header('Books', 'A collection of my reading list.') %}
+    <button onclick="openAddBookModal()" class="btn-primary" style="padding: 8px 16px; border-radius: 20px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+        <i class="fa-solid fa-plus"></i> Add Book
+    </button>
+{% endcall %}
 
 <style>
     .books-grid {
@@ -197,11 +201,8 @@
     </div>
 
     <!-- 3. To Read (Wishlist) -->
-    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="section-header">
         <h2>To Read</h2>
-        <button onclick="openAddBookModal()" class="btn-primary" style="padding: 8px 16px; border-radius: 20px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
-            <i class="fa-solid fa-plus"></i> Add Book
-        </button>
     </div>
     <div class="books-grid">
         {% for book in to_read %}

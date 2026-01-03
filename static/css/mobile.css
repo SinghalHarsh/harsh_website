@@ -1,0 +1,104 @@
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: calc(100vh - 60px);
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        background: #fff;
+        flex-shrink: 0;
+        z-index: 5;
+    }
+
+    .sidebar nav ul {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px;
+        gap: 10px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+
+    .sidebar nav ul::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    .sidebar nav ul li {
+        margin-bottom: 0;
+        flex: 0 0 auto;
+    }
+
+    .sidebar nav ul li a {
+        flex-direction: column;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 0.75rem;
+        border-left: none;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 70px;
+        gap: 6px;
+    }
+
+    .sidebar nav ul li a i {
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+    }
+
+    .sidebar nav ul li a.active {
+        background-color: var(--light-blue-bg);
+        color: var(--primary-blue);
+        border-left: none;
+    }
+
+    .content {
+        padding: 15px;
+        overflow-y: auto;
+    }
+
+    /* Adjust Topbar */
+    .topbar {
+        padding: 0 15px;
+    }
+
+    .logo span {
+        display: none; /* Optional: hide text logo if space is tight, but maybe keep it */
+    }
+
+    .topbar-actions {
+        gap: 15px;
+    }
+
+    .topbar-actions a {
+        font-size: 1.1rem;
+    }
+
+    /* Adjust Grids */
+    .goals-grid, 
+    .dashboard-cards, 
+    .blog-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    /* Adjust Modal */
+    .modal-content {
+        width: 90%;
+        margin: 20px auto;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    /* Adjust Gita Modal specifically */
+    .gita-modal {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 10px auto;
+    }
+}

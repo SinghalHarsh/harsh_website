@@ -8,11 +8,9 @@ notes_bp = Blueprint('notes', __name__)
 @notes_bp.route('/notes', methods=['GET', 'POST'])
 def notes():
     if request.method == 'POST':
-        title = request.form.get('title')
         content = request.form.get('content')
-        if content or title:
+        if content:
             db.notes.insert_one({
-                'title': title,
                 'content': content,
                 'created_at': datetime.now()
             })

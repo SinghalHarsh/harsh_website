@@ -28,28 +28,3 @@ def gita_random():
         verse['_id'] = str(verse['_id'])
         return jsonify(verse)
     return jsonify({"error": "No verses found"}), 404
-
-@gita_bp.route('/api/gita/search')
-def gita_search():
-    chapter = request.args.get('chapter', type=int)
-    verse_num = request.args.get('verse', type=int)
-    
-    if not chapter or not verse_num:
-        return jsonify({"error": "Chapter and Verse number required"}), 400
-        
-    verse = db.gita_verses.find_one({"chapter": chapter, "verse": verse_num})
-    if verse:
-        verse['_id'] = str(verse['_id'])
-        return jsonify(verse)
-    return jsonify({"error": "Verse not found"}), 404
-
-@gita_bp.route('/api/gita/chapters')
-def gita_chapters():
-    # Return structure: { 1: 47, 2: 72, ... } (chapter: max_verses)
-    pipeline = [
-        {"$group": {"_id": "$chapter", "count": {"$max": "$verse"}}},
-        {"$sort": {"_id": 1}}
-    ]
-    results = list(db.gita_verses.aggregate(pipeline))
-    chapters = {r['_id']: r['count'] for r in results}
-    return jsonify(chapters)

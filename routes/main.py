@@ -101,7 +101,7 @@ def quotes():
     # 4. Pick one random item
     selected_content = random.choice(all_content) if all_content else None
     
-    return render_template('quotes.html', content=selected_content)
+    return render_template('quotes.html', content=selected_content, total_quotes=len(all_content))
 
 @main_bp.route('/quotes/upload', methods=['POST'])
 def upload_quote():
