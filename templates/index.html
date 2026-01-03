@@ -1016,6 +1016,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
     
     function createBalloon() {
+        if (collectedWords.length >= 3) return;
         const container = document.getElementById('balloon-container');
         if (!container) return;
         
