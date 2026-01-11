@@ -99,11 +99,13 @@
                         {% for day in month.days %}
                             {% if day is none %}
                                 <div class="heatmap-cell empty" style="visibility:hidden;"></div>
+                            {% elif day.future %}
+                                <div class="heatmap-cell future" style="background-color: #f8f9fa; border: 1px solid #eee;"></div>
                             {% else %}
                                 {% if is_overall %}
                                     <div class="heatmap-cell {{ 'today' if day.date == today_iso else '' }}" 
-                                         style="background-color: rgba(46, 204, 113, {{ 0.1 + (day.rate * 0.9) if day.rate > 0 else 0 }}); {{ 'background-color: #f0f2f5;' if day.rate == 0 else '' }}"
-                                         data-tooltip="{{ day.display_date }}: {{ day.completed_count }}/{{ day.total_active }} Completed"></div>
+                                         style="background-color: rgba(46, 204, 113, {{ 0.2 + (day.completed_count * 0.15) if day.completed_count > 0 else 0 }}); {{ 'background-color: #f0f2f5;' if day.completed_count == 0 else '' }}"
+                                         data-tooltip="{{ day.display_date }}: {{ day.completed_count }} Completed"></div>
                                 {% else %}
                                     <div class="heatmap-cell {{ 'completed' if day.completed else '' }} {{ 'today' if day.date == today_iso else '' }}" 
                                          data-tooltip="{{ day.display_date }}: {{ 'Completed' if day.completed else 'Missed' }}"></div>

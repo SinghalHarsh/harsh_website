@@ -7,8 +7,11 @@ habits_bp = Blueprint('habits', __name__)
 
 @habits_bp.route('/habits')
 def habits():
-    # Fetch all habits but separate active ones for display
-    all_habits = list(db.habits.find())
+    # Fetch all habits including soft-deleted ones for calculation
+    all_raw_habits = list(db.habits.find())
+    
+    # Filter for display (exclude deleted)
+    all_habits = [h for h in all_raw_habits if not h.get('deleted')]
     
     today_date = datetime.now()
     today_str = today_date.strftime('%Y-%m-%d')
@@ -69,7 +72,7 @@ def habits():
     months_data = []
     
     if selected_habit or is_overall:
-        habit_history = set(selected_habit.get('history', [])) if selected_habit else set()
+        search_target_habits = [selected_habit] if selected_habit else all_raw_habits # use all_raw_habits for overall to include deleted
         
         for m in range(1, 13):
             first_weekday, num_days = calendar.monthrange(selected_year, m)
@@ -85,25 +88,32 @@ def habits():
                 date_str = date_obj.strftime('%Y-%m-%d')
                 display_date = date_obj.strftime('%a, %b %d, %Y')
                 
+                # Don't show future dates
+                if date_obj > today_date and date_obj.date() > today_date.date():
+                    month_days.append({
+                        'date': date_str,
+                        'display_date': display_date,
+                        'day': d,
+                        'future': True
+                    })
+                    continue
+
                 if is_overall:
-                    # Calculate completion for all active habits
+                    # Logic simplified: Just count how many habits were completed on this day.
+                    # No longer calculating "active" denominator which was causing confusion.
                     completed_count = 0
-                    total_active = len(active_habits)
-                    for h in active_habits:
+                    for h in search_target_habits:
                         if date_str in h.get('history', []):
                             completed_count += 1
-                    
-                    completion_rate = (completed_count / total_active) if total_active > 0 else 0
                     
                     month_days.append({
                         'date': date_str,
                         'display_date': display_date,
                         'day': d,
-                        'completed_count': completed_count,
-                        'total_active': total_active,
-                        'rate': completion_rate
+                        'completed_count': completed_count
                     })
                 else:
+                    habit_history = set(selected_habit.get('history', [])) if selected_habit else set()
                     is_completed = date_str in habit_history
                     month_days.append({
                         'date': date_str,
@@ -149,12 +159,15 @@ def add_habit():
     active_status = request.form.get('active') == 'true'
     
     if name:
+        today = datetime.now().strftime('%Y-%m-%d')
+        
         db.habits.insert_one({
             "name": name,
             "streak": "0 Days",
             "status": "New",
             "color": color if color else "text-blue",
             "active": active_status,
+            "created_at": today,
             "history": []
         })
     
@@ -167,7 +180,17 @@ def add_habit():
 def delete_habit():
     habit_name = request.form.get('habit_name')
     if habit_name:
-        db.habits.delete_one({"name": habit_name})
+        # Soft delete instead of remove
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        db.habits.update_one(
+            {"name": habit_name},
+            {"$set": {
+                "deleted": True, 
+                "deleted_at": today,
+                "active": False # Ensure it is marked inactive
+            }}
+        )
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"status": "success", "name": habit_name})
