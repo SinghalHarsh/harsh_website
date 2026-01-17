@@ -1,7 +1,6 @@
 [build]
-  command = "pip install -r requirements.txt"
   functions = "netlify/functions"
-
+  publish = "static"
 
 [functions]
   included_files = ["app.py", "database.py", "gita_full.json", "routes/**", "templates/**", "static/**"]
