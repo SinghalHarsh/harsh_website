@@ -1,0 +1,813 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import page_header %}
+
+{% block title %}Spiritual Diary{% endblock %}
+
+{% block content %}
+<style>
+    .diary-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .diary-intro {
+        background: linear-gradient(135deg, #fdf6e3, #fff8ef);
+        border: 1px solid #f0e0c0;
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 30px;
+        line-height: 1.8;
+        color: #5a4a3a;
+    }
+    .diary-intro h2 {
+        color: #b8860b;
+        margin-bottom: 5px;
+        font-size: 1.4rem;
+    }
+    .diary-intro .author {
+        color: #a0896a;
+        font-style: italic;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+    .diary-intro p {
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    .diary-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 25px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+    .diary-controls label {
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 0.9rem;
+    }
+    .diary-controls input, .diary-controls select {
+        padding: 8px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        outline: none;
+    }
+    .diary-controls input:focus, .diary-controls select:focus {
+        border-color: #b8860b;
+        box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
+    }
+    .diary-table-wrapper {
+        overflow-x: auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+        margin-bottom: 30px;
+    }
+    .diary-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    .diary-table th {
+        background: #fdf6e3;
+        color: #b8860b;
+        font-weight: 600;
+        padding: 12px 8px;
+        text-align: center;
+        border-bottom: 2px solid #f0e0c0;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+    }
+    .diary-table th:first-child {
+        text-align: left;
+        padding-left: 16px;
+        min-width: 320px;
+    }
+    .diary-table td {
+        padding: 8px;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .diary-table td:first-child {
+        text-align: left;
+        padding-left: 16px;
+        color: #4a5568;
+        font-weight: 500;
+    }
+    .diary-table tr:hover {
+        background: #fdf6e3;
+    }
+    .diary-table input[type="text"],
+    .diary-table input[type="time"],
+    .diary-table select {
+        width: 90px;
+        padding: 6px 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        text-align: center;
+        font-family: inherit;
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .diary-table input[type="text"]:focus,
+    .diary-table input[type="time"]:focus,
+    .diary-table select:focus {
+        border-color: #b8860b;
+        box-shadow: 0 0 0 2px rgba(184,134,11,0.1);
+    }
+    .diary-table .total-col {
+        background: #f7fafc;
+        font-weight: 600;
+    }
+    .diary-table .total-col input,
+    .diary-table .total-col span {
+        font-weight: 600;
+    }
+    .diary-table .date-header {
+        font-size: 0.75rem;
+        line-height: 1.3;
+    }
+    .diary-table .date-header .day-name {
+        display: block;
+        font-weight: 400;
+        color: #a08050;
+        font-size: 0.7rem;
+    }
+    .diary-table .date-header.today {
+        background: #b8860b;
+        color: #fff;
+        border-radius: 4px;
+    }
+    .diary-table .date-header.today .day-name {
+        color: #fde8b0;
+    }
+    .diary-table td.today-col {
+        background: rgba(184,134,11,0.06);
+    }
+    .diary-table tr.total-row td {
+        background: #fdf6e3;
+        font-weight: 600;
+        border-top: 2px solid #f0e0c0;
+        color: #b8860b;
+    }
+    .diary-actions {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #b8860b, #d4a017);
+        color: #fff;
+        border: none;
+        padding: 10px 28px;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .btn-save:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(184,134,11,0.3);
+    }
+    .btn-delete-diary {
+        background: #fff;
+        color: #e53e3e;
+        border: 1px solid #e53e3e;
+        padding: 10px 28px;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .btn-delete-diary:hover {
+        background: #fff5f5;
+    }
+    .reference-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 10px;
+    }
+    .reference-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+    .reference-card h3 {
+        color: #b8860b;
+        margin-bottom: 12px;
+        font-size: 1.05rem;
+    }
+    .reference-card ol {
+        padding-left: 20px;
+        color: #4a5568;
+        line-height: 1.8;
+    }
+    .reference-card li {
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+    }
+    .reference-card li strong {
+        color: #2d3748;
+    }
+    .status-msg {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        gap: 6px;
+    }
+    .status-msg.success {
+        background: #f0fff4;
+        color: #38a169;
+        border: 1px solid #c6f6d5;
+    }
+    .status-msg.error {
+        background: #fff5f5;
+        color: #e53e3e;
+        border: 1px solid #fed7d7;
+    }
+    .saved-entries {
+        margin-bottom: 30px;
+    }
+    .saved-entries h3 {
+        color: #4a5568;
+        margin-bottom: 12px;
+        font-size: 1rem;
+    }
+    .entry-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .entry-chip {
+        background: #fdf6e3;
+        border: 1px solid #f0e0c0;
+        color: #b8860b;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .entry-chip:hover {
+        background: #b8860b;
+        color: #fff;
+    }
+    .section-divider {
+        border: none;
+        border-top: 2px solid #f0e0c0;
+        margin: 30px 0;
+    }
+</style>
+
+{{ page_header('Spiritual Diary', 'Track your daily sadhana and spiritual progress.') }}
+
+<div class="diary-container">
+
+    <!-- Introduction -->
+    <div class="diary-intro">
+        <h2>Importance of Spiritual Diary</h2>
+        <div class="author">— Swami Sivananda</div>
+        <p>The keeping up of a daily spiritual diary is an indispensable requisite. A diary is a whip for goading the mind towards righteousness and God. The diary is your teacher and guide. It is the eye-opener. It will help you to destroy all your evil qualities and to be regular in your spiritual practices.</p>
+        <p>A big thief is hiding himself in your brain. He has snatched away your Atmic pearl. He is giving you immense worries and troubles. He is deluding you. The thief is your mind. You must not be lenient towards him. You must crush him. You must kill him ruthlessly. There is no other sword sharper than this diary to kill him. It checks his happy-go-lucky ways and destroys him eventually. All your daily mistakes will be corrected if you maintain daily spiritual diary. A good time will come when you will be entirely free from anger, untruth, lust, etc. You will become a perfect man.</p>
+        <p>There is no other better friend and more faithful teacher or Guru than your diary. It will teach you the value of time. At the end of every month calculate the total number of hours you have spent in Japa, study of religious books, Pranayama, Asanas, sleep, etc. Then you will be able to know how much time you are spending for religious purposes. You have got every chance to increase the period of Japa, meditation, etc., gradually. If you maintain a daily diary properly without any fault in any of the items you will not like to waste even a single minute unnecessarily. Then alone you will understand the value of time and how it slips away.</p>
+    </div>
+
+    <!-- Saved Entries -->
+    {% if entries %}
+    <div class="saved-entries">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Saved Entries</h3>
+        <div class="entry-chips">
+            {% for entry in entries %}
+            <span class="entry-chip" onclick="loadEntry('{{ entry.month }}', '{{ entry.week }}')">
+                {{ entry.month }} — Week {{ entry.week }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Controls -->
+    <div class="diary-controls">
+        <label for="diaryMonth">Month:</label>
+        <input type="month" id="diaryMonth" />
+        <label for="diaryWeek">Week:</label>
+        <select id="diaryWeek">
+            <option value="1">Week 1</option>
+            <option value="2">Week 2</option>
+            <option value="3">Week 3</option>
+            <option value="4">Week 4</option>
+        </select>
+        <button class="btn-save" onclick="loadCurrentEntry()"><i class="fa-solid fa-download"></i> Load</button>
+        <span class="status-msg" id="statusMsg"></span>
+    </div>
+
+    <!-- Diary Table -->
+    <div class="diary-table-wrapper">
+        <table class="diary-table" id="diaryTable">
+            <thead>
+                <tr id="diaryHeaders">
+                    <th>Questions</th>
+                    <th>Day 1</th>
+                    <th>Day 2</th>
+                    <th>Day 3</th>
+                    <th>Day 4</th>
+                    <th>Day 5</th>
+                    <th>Day 6</th>
+                    <th>Day 7</th>
+                    <th>Weekly Total</th>
+                    <th>Grand Total</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Actions -->
+    <div class="diary-actions">
+        <button class="btn-save" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk"></i> Save Entry</button>
+        <button class="btn-delete-diary" onclick="confirmDeleteEntry()"><i class="fa-solid fa-trash"></i> Delete Entry</button>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Reference Cards -->
+    <div class="reference-section">
+        <div class="reference-card">
+            <h3><i class="fa-solid fa-om"></i> 5 Yamas</h3>
+            <ol>
+                <li><strong>Ahimsa</strong> — Non-violence</li>
+                <li><strong>Satya</strong> — Truthfulness</li>
+                <li><strong>Asteya</strong> — Non-stealing</li>
+                <li><strong>Brahmacharya</strong></li>
+                <li><strong>Aparigraha</strong> — Non-accumulation</li>
+            </ol>
+        </div>
+        <div class="reference-card">
+            <h3><i class="fa-solid fa-spa"></i> 5 Niyamas</h3>
+            <ol>
+                <li><strong>Saucha</strong> — Cleanliness</li>
+                <li><strong>Santosha</strong> — Contentment</li>
+                <li><strong>Tapas</strong> — Austerity</li>
+                <li><strong>Swadhyay</strong> — Self study</li>
+                <li><strong>Ishvarpranidhana</strong> — God Consciousness</li>
+            </ol>
+        </div>
+        <div class="reference-card">
+            <h3><i class="fa-solid fa-star"></i> Virtues (Shat Sampatti)</h3>
+            <ol>
+                <li><strong>Shama</strong> — Ability to be calm and keep a peace of mind</li>
+                <li><strong>Dama</strong> — Ability to control the senses and reactions to external stimuli</li>
+                <li><strong>Titiksha</strong> — Renouncing anything that doesn't fit your dharma (duty)</li>
+                <li><strong>Uparati</strong> — Persevering through suffering</li>
+                <li><strong>Shraddha</strong> — Trusting and having faith in the path of Jnana yoga</li>
+                <li><strong>Samadhana</strong> — Total concentration and focus of the mind</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<script>
+const QUESTIONS = [
+    { text: "When did you get up from bed?", type: "time" },
+    { text: "How many hours did you sleep?", type: "select", options: [...Array(12)].map((_,i) => i+1) },
+    { text: "How many Malas of Japa?", type: "number" },
+    { text: "How long did you practice chanting?", type: "number" },
+    { text: "How many Pranayamas?", type: "number" },
+    { text: "How long did you perform Asanas?", type: "number" },
+    { text: "How long did you meditate?", type: "number" },
+    { text: "How many Gita Slokas did you read or get by heart?", type: "number" },
+    { text: "How long did you practice Swadhyay?", type: "number" },
+    { text: "How many hours did you observe Mouna?", type: "number" },
+    { text: "How long in disinterested selfless service?", type: "number" },
+    { text: "How much did you give in charity?", type: "number" },
+    { text: "How long did you practice physical exercise?", type: "number" },
+    { text: "Which Yamas you practiced intentionally?", type: "text" },
+    { text: "Which Niyamas you practiced intentionally?", type: "text" },
+    { text: "Which Yamas and Niyamas failed to practice?", type: "text" },
+    { text: "How many hours you spent in useless gossip/social media/OTT?", type: "number" },
+    { text: "How long you concentrated on your Ishta Devata (Saguna or Nirguna Dhyana)?", type: "number" },
+    { text: "How long did you spend in a constructive activity?", type: "number" },
+    { text: "What new skill/hobby are you developing?", type: "text" },
+    { text: "What virtue are you developing?", type: "text" },
+    { text: "What evil quality are you trying to eradicate?", type: "text" },
+    { text: "What Indriya are you controlling?", type: "text" },
+    { text: "When did you go to bed?", type: "time" }
+];
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function getTodayStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+function getWeekDates(monthStr, week) {
+    const [y, m] = monthStr.split('-').map(Number);
+    const startDay = (week - 1) * 7 + 1;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const todayStr = getTodayStr();
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+        const day = startDay + i;
+        if (day <= daysInMonth) {
+            const d = new Date(y, m - 1, day);
+            const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            dates.push({ day, label: `${MONTH_NAMES[m-1]} ${day}`, dayName: DAY_NAMES[d.getDay()], isToday: dateStr === todayStr });
+        } else {
+            dates.push(null);
+        }
+    }
+    return dates;
+}
+
+function updateHeaders() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    const headerRow = document.getElementById('diaryHeaders');
+    if (!month) return;
+    const dates = getWeekDates(month, parseInt(week));
+    headerRow.innerHTML = '<th>Questions</th>';
+    dates.forEach(d => {
+        const th = document.createElement('th');
+        if (d) {
+            th.className = 'date-header' + (d.isToday ? ' today' : '');
+            th.innerHTML = `${d.label}<span class="day-name">${d.dayName}</span>`;
+        } else {
+            th.textContent = '—';
+        }
+        headerRow.appendChild(th);
+    });
+    const thWeekly = document.createElement('th');
+    thWeekly.textContent = 'Weekly Total';
+    headerRow.appendChild(thWeekly);
+    const thGrand = document.createElement('th');
+    thGrand.textContent = 'Grand Total';
+    headerRow.appendChild(thGrand);
+}
+
+function createInput(qIdx, dayIdx, value) {
+    const q = QUESTIONS[qIdx];
+    const name = `q${qIdx}_d${dayIdx}`;
+    if (q.type === 'time') {
+        const inp = document.createElement('input');
+        inp.type = 'time';
+        inp.name = name;
+        inp.value = value || '';
+        return inp;
+    }
+    if (q.type === 'select') {
+        const sel = document.createElement('select');
+        sel.name = name;
+        const optBlank = document.createElement('option');
+        optBlank.value = '';
+        optBlank.textContent = '—';
+        sel.appendChild(optBlank);
+        q.options.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            if (String(value) === String(v)) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', () => recalcTotal(qIdx));
+        return sel;
+    }
+    if (q.type === 'number') {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'decimal';
+        inp.name = name;
+        inp.value = value || '';
+        inp.addEventListener('input', () => recalcTotal(qIdx));
+        return inp;
+    }
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.name = name;
+    inp.value = value || '';
+    return inp;
+}
+
+function recalcTotal(qIdx) {
+    const q = QUESTIONS[qIdx];
+    if (q.type !== 'number' && q.type !== 'select') return;
+    let sum = 0;
+    let hasValue = false;
+    for (let d = 1; d <= 7; d++) {
+        const el = document.querySelector(`[name="q${qIdx}_d${d}"]`);
+        if (el) {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) { sum += v; hasValue = true; }
+        }
+    }
+    const totalEl = document.querySelector(`[name="q${qIdx}_total"]`);
+    if (totalEl) totalEl.textContent = hasValue ? sum : '';
+}
+
+let allWeeksData = {};
+
+function loadAllWeeksForMonth(month) {
+    const promises = [1,2,3,4].map(w =>
+        fetch(`/diary/load?month=${encodeURIComponent(month)}&week=${w}`)
+            .then(r => r.json())
+            .then(data => ({ week: w, answers: data.answers || {} }))
+    );
+    return Promise.all(promises).then(results => {
+        allWeeksData = {};
+        results.forEach(r => { allWeeksData[r.week] = r.answers; });
+    });
+}
+
+function getGrandTotal(qIdx) {
+    const q = QUESTIONS[qIdx];
+    if (q.type !== 'number' && q.type !== 'select') return '';
+    let sum = 0, hasVal = false;
+    for (const wk of [1,2,3,4]) {
+        const ans = allWeeksData[wk] || {};
+        for (let d = 1; d <= 7; d++) {
+            const v = parseFloat(ans[`q${qIdx}_d${d}`] || '');
+            if (!isNaN(v)) { sum += v; hasVal = true; }
+        }
+    }
+    return hasVal ? sum : '';
+}
+
+function buildTable(answers) {
+    updateHeaders();
+    const tbody = document.querySelector('#diaryTable tbody');
+    tbody.innerHTML = '';
+
+    const month = document.getElementById('diaryMonth').value;
+    const week = parseInt(document.getElementById('diaryWeek').value);
+    const dates = month ? getWeekDates(month, week) : Array(7).fill({});
+
+    QUESTIONS.forEach((q, qi) => {
+        const tr = document.createElement('tr');
+        const tdQ = document.createElement('td');
+        tdQ.textContent = `${qi + 1}. ${q.text}`;
+        tr.appendChild(tdQ);
+        for (let d = 1; d <= 7; d++) {
+            const td = document.createElement('td');
+            if (dates[d-1] && dates[d-1].isToday) td.className = 'today-col';
+            if (dates[d-1]) {
+                const input = createInput(qi, d, answers ? answers[`q${qi}_d${d}`] : '');
+                td.appendChild(input);
+            } else {
+                td.textContent = '—';
+            }
+            tr.appendChild(td);
+        }
+        // Weekly Total column
+        const tdWeekly = document.createElement('td');
+        tdWeekly.className = 'total-col';
+        if (q.type === 'number' || q.type === 'select') {
+            const span = document.createElement('span');
+            span.setAttribute('name', `q${qi}_total`);
+            let sum = 0, hasVal = false;
+            for (let d = 1; d <= 7; d++) {
+                const v = parseFloat(answers ? answers[`q${qi}_d${d}`] : '');
+                if (!isNaN(v)) { sum += v; hasVal = true; }
+            }
+            span.textContent = hasVal ? sum : '';
+            tdWeekly.appendChild(span);
+        } else {
+            const totalInput = document.createElement('input');
+            totalInput.type = 'text';
+            totalInput.name = `q${qi}_total`;
+            totalInput.value = (answers && answers[`q${qi}_total`]) || '';
+            tdWeekly.appendChild(totalInput);
+        }
+        tr.appendChild(tdWeekly);
+        // Grand Total column (monthly)
+        const tdGrand = document.createElement('td');
+        tdGrand.className = 'total-col';
+        const grandSpan = document.createElement('span');
+        grandSpan.setAttribute('name', `q${qi}_grand`);
+        grandSpan.textContent = getGrandTotal(qi);
+        tdGrand.appendChild(grandSpan);
+        tr.appendChild(tdGrand);
+        tbody.appendChild(tr);
+    });
+
+    // Grand total row
+    const trGrand = document.createElement('tr');
+    trGrand.className = 'total-row';
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent = 'Daily Totals (numeric)';
+    trGrand.appendChild(tdLabel);
+    for (let d = 1; d <= 7; d++) {
+        const td = document.createElement('td');
+        if (dates[d-1] && dates[d-1].isToday) td.className = 'today-col';
+        const span = document.createElement('span');
+        span.id = `grand_d${d}`;
+        td.appendChild(span);
+        trGrand.appendChild(td);
+    }
+    const tdWeeklyGrand = document.createElement('td');
+    tdWeeklyGrand.className = 'total-col';
+    const spanWeeklyGrand = document.createElement('span');
+    spanWeeklyGrand.id = 'grand_weekly';
+    tdWeeklyGrand.appendChild(spanWeeklyGrand);
+    trGrand.appendChild(tdWeeklyGrand);
+    const tdGrandTotal = document.createElement('td');
+    tdGrandTotal.className = 'total-col';
+    const spanGrandAll = document.createElement('span');
+    spanGrandAll.id = 'grand_total';
+    tdGrandTotal.appendChild(spanGrandAll);
+    trGrand.appendChild(tdGrandTotal);
+    tbody.appendChild(trGrand);
+
+    recalcGrandTotals();
+}
+
+function recalcGrandTotals() {
+    let weeklyTotal = 0;
+    // Recalc per-row weekly totals and row grand totals
+    QUESTIONS.forEach((q, qi) => {
+        if (q.type !== 'number' && q.type !== 'select') return;
+        recalcTotal(qi);
+        // Update grand total for this row from allWeeksData + current edits
+        const grandSpan = document.querySelector(`[name="q${qi}_grand"]`);
+        if (grandSpan) {
+            let sum = 0, hasVal = false;
+            // Sum from all other weeks
+            const currentWeek = parseInt(document.getElementById('diaryWeek').value);
+            for (const wk of [1,2,3,4]) {
+                if (wk === currentWeek) continue;
+                const ans = allWeeksData[wk] || {};
+                for (let d = 1; d <= 7; d++) {
+                    const v = parseFloat(ans[`q${qi}_d${d}`] || '');
+                    if (!isNaN(v)) { sum += v; hasVal = true; }
+                }
+            }
+            // Add current week from live inputs
+            for (let d = 1; d <= 7; d++) {
+                const el = document.querySelector(`[name="q${qi}_d${d}"]`);
+                if (el) {
+                    const v = parseFloat(el.value);
+                    if (!isNaN(v)) { sum += v; hasVal = true; }
+                }
+            }
+            grandSpan.textContent = hasVal ? sum : '';
+        }
+    });
+    // Recalc daily totals row
+    let weekSum = 0;
+    for (let d = 1; d <= 7; d++) {
+        let daySum = 0;
+        QUESTIONS.forEach((q, qi) => {
+            if (q.type !== 'number' && q.type !== 'select') return;
+            const el = document.querySelector(`[name="q${qi}_d${d}"]`);
+            if (el) {
+                const v = parseFloat(el.value);
+                if (!isNaN(v)) daySum += v;
+            }
+        });
+        const span = document.getElementById(`grand_d${d}`);
+        if (span) span.textContent = daySum || '';
+        weekSum += daySum;
+    }
+    const spanWT = document.getElementById('grand_weekly');
+    if (spanWT) spanWT.textContent = weekSum || '';
+    // Grand total = sum of all grand row totals
+    let allTotal = 0;
+    QUESTIONS.forEach((q, qi) => {
+        if (q.type !== 'number' && q.type !== 'select') return;
+        const gs = document.querySelector(`[name="q${qi}_grand"]`);
+        if (gs && gs.textContent) allTotal += parseFloat(gs.textContent) || 0;
+    });
+    const spanGT = document.getElementById('grand_total');
+    if (spanGT) spanGT.textContent = allTotal || '';
+}
+
+// Recalculate grand totals whenever any input changes
+document.addEventListener('input', () => {
+    recalcGrandTotals();
+});
+document.addEventListener('change', () => {
+    recalcGrandTotals();
+});
+
+function gatherAnswers() {
+    const answers = {};
+    document.querySelectorAll('#diaryTable input, #diaryTable select').forEach(el => {
+        if (el.name && el.value.trim()) answers[el.name] = el.value.trim();
+    });
+    // Also gather computed totals
+    document.querySelectorAll('#diaryTable .total-col span[name]').forEach(span => {
+        if (span.textContent.trim()) answers[span.getAttribute('name')] = span.textContent.trim();
+    });
+    return answers;
+}
+
+function showStatus(msg, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = 'status-msg ' + type;
+    el.style.display = 'inline-flex';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function saveEntry() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    if (!month) { showStatus('Please select a month.', 'error'); return; }
+    fetch('/diary/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ month, week, answers: gatherAnswers() })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showStatus('Saved successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showStatus(data.error || 'Save failed.', 'error');
+        }
+    })
+    .catch(() => showStatus('Network error.', 'error'));
+}
+
+function loadCurrentEntry() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    if (!month) { showStatus('Please select a month.', 'error'); return; }
+    loadAllWeeksForMonth(month).then(() => {
+        fetch(`/diary/load?month=${encodeURIComponent(month)}&week=${encodeURIComponent(week)}`)
+        .then(r => r.json())
+        .then(data => {
+            buildTable(data.answers);
+            if (data.found) showStatus('Entry loaded.', 'success');
+            else showStatus('No saved entry — starting fresh.', 'success');
+        })
+        .catch(() => showStatus('Network error.', 'error'));
+    });
+}
+
+function loadEntry(month, week) {
+    document.getElementById('diaryMonth').value = month;
+    document.getElementById('diaryWeek').value = week;
+    loadCurrentEntry();
+}
+
+function confirmDeleteEntry() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    if (!month) { showStatus('Please select a month.', 'error'); return; }
+    showConfirm(`Delete entry for ${month} Week ${week}?`, () => {
+        fetch('/diary/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ month, week })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showStatus('Deleted.', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        })
+        .catch(() => showStatus('Network error.', 'error'));
+    });
+}
+
+// Update headers + table when month/week changes
+document.getElementById('diaryMonth').addEventListener('change', () => {
+    loadCurrentEntry();
+});
+document.getElementById('diaryWeek').addEventListener('change', () => loadCurrentEntry());
+
+// Init
+const now = new Date();
+const yyyy = now.getFullYear();
+const mm = String(now.getMonth() + 1).padStart(2, '0');
+document.getElementById('diaryMonth').value = `${yyyy}-${mm}`;
+loadCurrentEntry();
+</script>
+
+{% endblock %}
