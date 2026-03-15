@@ -197,6 +197,21 @@
     .btn-delete-diary:hover {
         background: #fff5f5;
     }
+    .btn-csv {
+        background: #fff;
+        color: #38a169;
+        border: 1px solid #38a169;
+        padding: 10px 28px;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .btn-csv:hover {
+        background: #f0fff4;
+    }
     .reference-section {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -349,6 +364,7 @@
     <div class="diary-actions">
         <button class="btn-save" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk"></i> Save Entry</button>
         <button class="btn-delete-diary" onclick="confirmDeleteEntry()"><i class="fa-solid fa-trash"></i> Delete Entry</button>
+        <button class="btn-csv" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Download CSV</button>
     </div>
 
     <hr class="section-divider">
@@ -794,6 +810,41 @@ function confirmDeleteEntry() {
         })
         .catch(() => showStatus('Network error.', 'error'));
     });
+}
+
+function downloadCSV() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    if (!month) { showStatus('Please select a month.', 'error'); return; }
+
+    const headers = ['Question'];
+    const headerRow = document.getElementById('diaryHeaders');
+    Array.from(headerRow.querySelectorAll('th')).slice(1).forEach(th => {
+        headers.push(th.textContent.trim().replace(/\n/g, ' '));
+    });
+
+    const rows = [headers];
+    const tbody = document.querySelector('#diaryTable tbody');
+    Array.from(tbody.querySelectorAll('tr:not(.total-row)')).forEach((tr, qi) => {
+        const cells = tr.querySelectorAll('td');
+        const row = [cells[0].textContent.trim()];
+        Array.from(cells).slice(1).forEach(td => {
+            const inp = td.querySelector('input, select');
+            const span = td.querySelector('span');
+            const val = inp ? inp.value : (span ? span.textContent : td.textContent);
+            row.push((val || '').trim().replace(/,/g, ';'));
+        });
+        rows.push(row);
+    });
+
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `spiritual_diary_${month}_week${week}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 // Update headers + table when month/week changes
