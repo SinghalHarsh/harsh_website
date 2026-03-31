@@ -333,6 +333,7 @@
             <option value="2">Week 2</option>
             <option value="3">Week 3</option>
             <option value="4">Week 4</option>
+            <option value="5">Week 5</option>
         </select>
         <button class="btn-save" onclick="loadCurrentEntry()"><i class="fa-solid fa-download"></i> Load</button>
         <span class="status-msg" id="statusMsg"></span>
@@ -847,8 +848,21 @@ function downloadCSV() {
     URL.revokeObjectURL(url);
 }
 
+function updateWeekOptions() {
+    const monthVal = document.getElementById('diaryMonth').value;
+    const weekSel = document.getElementById('diaryWeek');
+    const week5 = weekSel.querySelector('option[value="5"]');
+    if (monthVal) {
+        const [y, m] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        week5.style.display = daysInMonth > 28 ? '' : 'none';
+        if (weekSel.value === '5' && daysInMonth <= 28) weekSel.value = '4';
+    }
+}
+
 // Update headers + table when month/week changes
 document.getElementById('diaryMonth').addEventListener('change', () => {
+    updateWeekOptions();
     loadCurrentEntry();
 });
 document.getElementById('diaryWeek').addEventListener('change', () => loadCurrentEntry());
@@ -858,6 +872,7 @@ const now = new Date();
 const yyyy = now.getFullYear();
 const mm = String(now.getMonth() + 1).padStart(2, '0');
 document.getElementById('diaryMonth').value = `${yyyy}-${mm}`;
+updateWeekOptions();
 loadCurrentEntry();
 </script>
 
