@@ -169,12 +169,15 @@
     font-size: 1.2rem; color: #64748b;
   }
 
-  .pause-btn {
+  .controls {
     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px;
+  }
+  .ctrl-btn {
     background: #1e293b; color: #94a3b8; border: 1px solid #334155;
     padding: 8px 28px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;
   }
-  .pause-btn:hover { background: #334155; }
+  .ctrl-btn:hover { background: #334155; }
 
   .hidden { display: none; }
 
@@ -219,7 +222,10 @@
 </div>
 
 <div id="session" class="list hidden"></div>
-<button class="pause-btn hidden" id="pauseBtn" onclick="togglePause()">Pause (Space)</button>
+<div class="controls hidden" id="controls">
+  <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">Pause (Space)</button>
+  <button class="ctrl-btn" onclick="skipStep()">Skip (→)</button>
+</div>
 
 <script>
 const SPEED = 1000;
@@ -297,6 +303,8 @@ let paused = false;
 let timer = null;
 let countTimer = null;
 let totalRounds = 10;
+let pausedCount = 0;
+let pausedRemaining = 0;
 const session = document.getElementById('session');
 const progressEl = document.getElementById('progress');
 const roundInfoEl = document.getElementById('roundInfo');
@@ -335,7 +343,7 @@ function startSession() {
       clearInterval(cdTimer);
       overlay.remove();
       session.classList.remove('hidden');
-      document.getElementById('pauseBtn').classList.remove('hidden');
+      document.getElementById('controls').classList.remove('hidden');
       idx = 0;
       runStep();
     } else {
@@ -377,7 +385,7 @@ function runStep() {
   if (idx >= steps.length) {
     roundInfoEl.textContent = 'DONE';
     progressEl.style.width = '100%';
-    document.getElementById('pauseBtn').classList.add('hidden');
+    document.getElementById('controls').classList.add('hidden');
     return;
   }
 
@@ -391,10 +399,13 @@ function runStep() {
   const labelEl = document.getElementById(`label-${idx}`);
 
   if (step.type === 'speak') {
-    let remaining = Math.ceil(step.duration / 1000);
+    let remaining = pausedRemaining || Math.ceil(step.duration / 1000);
+    pausedRemaining = 0;
+    pausedCount = 0;
     labelEl.innerHTML = `${step.text} <span style="opacity:0.5;font-size:0.8em;margin-left:12px">${remaining}s</span>`;
     countTimer = setInterval(() => {
       remaining--;
+      pausedRemaining = remaining;
       if (remaining <= 0) {
         clearInterval(countTimer); countTimer = null;
         labelEl.textContent = step.text;
@@ -404,16 +415,21 @@ function runStep() {
       }
     }, 1000);
   } else {
-    let c = 1;
+    let c = pausedCount || 1;
+    pausedCount = 0;
+    pausedRemaining = 0;
     updateCountInLabel(labelEl, step, c);
+    pausedCount = c;
     countTimer = setInterval(() => {
       c++;
       if (c > step.counts) {
         clearInterval(countTimer); countTimer = null;
+        pausedCount = 0;
         labelEl.textContent = stepBaseText(step);
         idx++;
         runStep();
       } else {
+        pausedCount = c;
         updateCountInLabel(labelEl, step, c);
       }
     }, SPEED);
@@ -431,11 +447,26 @@ function togglePause() {
     btn.textContent = 'Resume (Space)';
     if (timer) { clearTimeout(timer); timer = null; }
     if (countTimer) { clearInterval(countTimer); countTimer = null; }
+    // pausedCount and pausedRemaining are already set by the running interval
   }
+}
+
+function skipStep() {
+  if (timer) { clearTimeout(timer); timer = null; }
+  if (countTimer) { clearInterval(countTimer); countTimer = null; }
+  pausedCount = 0;
+  pausedRemaining = 0;
+  paused = false;
+  document.getElementById('pauseBtn').textContent = 'Pause (Space)';
+  const labelEl = document.getElementById(`label-${idx}`);
+  if (labelEl) labelEl.textContent = stepBaseText(steps[idx]);
+  idx++;
+  runStep();
 }
 
 document.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); skipStep(); }
 });
 </script>
 </body>
