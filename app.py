@@ -11,6 +11,7 @@ from routes.gita import gita_bp
 from routes.books import books_bp
 from routes.notes import notes_bp
 from routes.diary import diary_bp
+from routes.pranayama import pranayama_bp
 
 load_dotenv()
 
@@ -30,6 +31,7 @@ app.register_blueprint(gita_bp)
 app.register_blueprint(books_bp)
 app.register_blueprint(notes_bp)
 app.register_blueprint(diary_bp)
+app.register_blueprint(pranayama_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

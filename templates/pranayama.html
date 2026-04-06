@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anulom Vilom Pranayama</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 4px;
+    background: #7c3aed; transition: width 0.3s; z-index: 100;
+  }
+
+  .round-info {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 0.85rem; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 50px 32px 60px;
+    gap: 0;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 24px;
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    min-height: 48px;
+    opacity: 0.7;
+  }
+
+  .row.active {
+    color: #ffffff;
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.3), rgba(124, 58, 237, 0.05));
+    border-left: 6px solid #a78bfa;
+    border-radius: 0 8px 8px 0;
+    font-weight: 700;
+    opacity: 1;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+  }
+  .row.active .phase { opacity: 1; }
+
+  .row.done {
+    opacity: 0.45;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { background: linear-gradient(90deg, rgba(124, 58, 237, 0.3), rgba(124, 58, 237, 0.05)); }
+    50% { background: linear-gradient(90deg, rgba(124, 58, 237, 0.5), rgba(124, 58, 237, 0.1)); }
+  }
+
+  .phase {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    min-width: 70px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+  .phase.inhale { background: #166534; color: #4ade80; }
+  .phase.hold   { background: #78350f; color: #fbbf24; }
+  .phase.exhale { background: #1e3a5f; color: #60a5fa; }
+  .phase.speak  { background: #3b0764; color: #c4b5fd; }
+
+  .label { flex: 1; }
+  .row.active .label.inhale { color: #86efac; }
+  .row.active .label.hold   { color: #fde68a; }
+  .row.active .label.exhale { color: #93c5fd; }
+  .row.active .label.speak  { color: #c4b5fd; }
+
+  /* Start screen */
+  .start-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 28px;
+  }
+  .start-screen h1 { font-size: 2.5rem; font-weight: 200; color: #c4b5fd; }
+
+  .settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+    background: #1e293b;
+    padding: 28px 36px;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    max-width: 440px;
+    width: 100%;
+  }
+  .setting {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .setting.full { grid-column: 1 / -1; }
+  .setting label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .setting input[type="number"] {
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    width: 80px;
+    text-align: center;
+    outline: none;
+  }
+  .setting input[type="number"]:focus { border-color: #7c3aed; }
+  .setting input.inhale { color: #4ade80; }
+  .setting input.hold   { color: #fbbf24; }
+  .setting input.exhale { color: #60a5fa; }
+  .setting input.rounds { color: #c4b5fd; }
+
+  .summary {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .btn {
+    background: #7c3aed; color: #fff; border: none;
+    padding: 16px 48px; font-size: 1.2rem; border-radius: 12px; cursor: pointer;
+  }
+  .btn:hover { background: #6d28d9; }
+
+  .countdown-overlay {
+    position: fixed; inset: 0;
+    background: #0f172a;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    z-index: 200;
+  }
+  .countdown-overlay .number {
+    font-size: 8rem; font-weight: 200; color: #a78bfa;
+  }
+  .countdown-overlay .sub {
+    font-size: 1.2rem; color: #64748b;
+  }
+
+  .pause-btn {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+    padding: 8px 28px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;
+  }
+  .pause-btn:hover { background: #334155; }
+
+  .hidden { display: none; }
+
+  @media (max-width: 600px) {
+    .row { font-size: 1.05rem; padding: 10px 16px; }
+    .list { padding: 50px 12px 60px; }
+    .settings { padding: 20px 20px; gap: 12px 20px; }
+    .start-screen h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+<div class="round-info" id="roundInfo"></div>
+
+<div id="startScreen" class="start-screen">
+  <h1>Anulom Vilom</h1>
+
+  <div class="settings">
+    <div class="setting">
+      <label>Rounds</label>
+      <input type="number" id="sRounds" class="rounds" min="1" max="50" value="10" oninput="updateSettings()">
+    </div>
+    <div class="setting">
+      <label>Inhale (sec)</label>
+      <input type="number" id="sInhale" class="inhale" min="1" max="50" value="4" oninput="updateSettings()">
+    </div>
+    <div class="setting">
+      <label>Hold (sec)</label>
+      <input type="number" id="sHold" class="hold" min="0" max="50" value="4" oninput="updateSettings()">
+    </div>
+    <div class="setting">
+      <label>Exhale (sec)</label>
+      <input type="number" id="sExhale" class="exhale" min="1" max="50" value="8" oninput="updateSettings()">
+    </div>
+  </div>
+
+  <div class="summary" id="summary">10 rounds &bull; ~5 min 20 sec</div>
+
+  <button class="btn" onclick="startSession()">Start</button>
+</div>
+
+<div id="session" class="list hidden"></div>
+<button class="pause-btn hidden" id="pauseBtn" onclick="togglePause()">Pause (Space)</button>
+
+<script>
+const SPEED = 1000;
+
+function getSettings() {
+  return {
+    rounds: +document.getElementById('sRounds').value,
+    inhale: +document.getElementById('sInhale').value,
+    hold: +document.getElementById('sHold').value,
+    exhale: +document.getElementById('sExhale').value,
+  };
+}
+
+function updateSettings() {
+  const s = getSettings();
+  const secsPerRound = (s.inhale + s.hold + s.exhale) * 2;
+  const totalSecs = secsPerRound * s.rounds + 12;
+  const min = Math.floor(totalSecs / 60);
+  const sec = totalSecs % 60;
+  document.getElementById('summary').textContent =
+    `${s.rounds} rounds \u2022 ~${min} min ${sec} sec`;
+}
+updateSettings();
+
+function buildSteps(cfg) {
+  const steps = [];
+  steps.push({ type: 'speak', text: 'Get ready... Sit straight. Back straight.', duration: 5000 });
+  steps.push({ type: 'speak', text: 'Left hand — Chin Mudra. Right hand — Vishnu Mudra.', duration: 5000 });
+  steps.push({ type: 'speak', text: 'Close right nostril. Inhale through left.', duration: 5000 });
+
+  for (let r = 1; r <= cfg.rounds; r++) {
+    steps.push({ type: 'inhale', nostril: 'LEFT', round: r, counts: cfg.inhale, first: r === 1 });
+    if (cfg.hold > 0) steps.push({ type: 'hold', round: r, counts: cfg.hold });
+    steps.push({ type: 'exhale', nostril: 'RIGHT', round: r, counts: cfg.exhale });
+    steps.push({ type: 'inhale', nostril: 'RIGHT', round: r, counts: cfg.inhale });
+    if (cfg.hold > 0) steps.push({ type: 'hold', round: r, counts: cfg.hold });
+    steps.push({ type: 'exhale', nostril: 'LEFT', round: r, counts: cfg.exhale });
+  }
+  steps.push({ type: 'speak', text: 'Slowly release. Hands down. Namaste.', duration: 5000 });
+  return steps;
+}
+
+function stepBaseText(s) {
+  if (s.type === 'speak') return s.text;
+  const labels = { inhale: 'Inhale', hold: 'Hold', exhale: 'Exhale' };
+  if (s.type === 'inhale') return s.first ? 'LEFT — Inhale' : 'Inhale';
+  if (s.type === 'hold') return 'Hold';
+  return `${s.nostril} — Exhale`;
+}
+
+function fullCountText(s) {
+  if (!s.counts) return '';
+  return Array.from({length: s.counts}, (_, i) => i + 1).join('  ');
+}
+
+function updateCountInLabel(labelEl, step, currentCount) {
+  const base = stepBaseText(step);
+  const nums = [];
+  for (let i = 1; i <= step.counts; i++) {
+    if (i < currentCount) {
+      nums.push(`<span style="opacity:0.4">${i}</span>`);
+    } else if (i === currentCount) {
+      nums.push(`<span style="font-weight:700;font-size:1.6em">${i}</span>`);
+    } else {
+      nums.push(`<span style="opacity:0.2">${i}</span>`);
+    }
+  }
+  labelEl.innerHTML = `${base} &nbsp; ${nums.join(' &nbsp; ')}`;
+}
+
+let steps = [];
+let rows = [];
+let idx = 0;
+let paused = false;
+let timer = null;
+let countTimer = null;
+let totalRounds = 10;
+const session = document.getElementById('session');
+const progressEl = document.getElementById('progress');
+const roundInfoEl = document.getElementById('roundInfo');
+
+function startSession() {
+  const cfg = getSettings();
+  totalRounds = cfg.rounds;
+  steps = buildSteps(cfg);
+
+  // Clear and rebuild rows
+  session.innerHTML = '';
+  rows = [];
+  steps.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <span class="phase ${s.type}">${s.type.toUpperCase()}</span>
+      <span class="label ${s.type}" id="label-${i}">${stepBaseText(s)}</span>
+    `;
+    session.appendChild(row);
+    rows.push(row);
+  });
+
+  document.getElementById('startScreen').classList.add('hidden');
+
+  // Show 3-2-1 countdown
+  const overlay = document.createElement('div');
+  overlay.className = 'countdown-overlay';
+  overlay.innerHTML = '<div class="number">3</div><div class="sub">Get Ready</div>';
+  document.body.appendChild(overlay);
+
+  let cd = 3;
+  const cdTimer = setInterval(() => {
+    cd--;
+    if (cd <= 0) {
+      clearInterval(cdTimer);
+      overlay.remove();
+      session.classList.remove('hidden');
+      document.getElementById('pauseBtn').classList.remove('hidden');
+      idx = 0;
+      runStep();
+    } else {
+      overlay.querySelector('.number').textContent = cd;
+    }
+  }, 1000);
+}
+
+function scrollToActive() {
+  const row = rows[idx];
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function setActive(i) {
+  rows.forEach((r, ri) => {
+    r.classList.remove('active');
+    r.style.opacity = '';
+    r.style.background = '';
+    r.style.fontWeight = '';
+    r.style.borderLeft = '';
+    r.style.color = '';
+    if (ri < i) {
+      r.classList.add('done');
+      r.style.opacity = '0.45';
+    }
+  });
+  if (rows[i]) {
+    rows[i].classList.add('active');
+    rows[i].style.opacity = '1';
+    rows[i].style.background = 'linear-gradient(90deg, rgba(124,58,237,0.35), rgba(124,58,237,0.05))';
+    rows[i].style.fontWeight = '700';
+    rows[i].style.borderLeft = '6px solid #a78bfa';
+    rows[i].style.color = '#ffffff';
+  }
+}
+
+function runStep() {
+  if (idx >= steps.length) {
+    roundInfoEl.textContent = 'DONE';
+    progressEl.style.width = '100%';
+    document.getElementById('pauseBtn').classList.add('hidden');
+    return;
+  }
+
+  const step = steps[idx];
+  progressEl.style.width = `${(idx / steps.length) * 100}%`;
+  if (step.round) roundInfoEl.textContent = `Round ${step.round} / ${totalRounds}`;
+
+  setActive(idx);
+  scrollToActive();
+
+  const labelEl = document.getElementById(`label-${idx}`);
+
+  if (step.type === 'speak') {
+    let remaining = Math.ceil(step.duration / 1000);
+    labelEl.innerHTML = `${step.text} <span style="opacity:0.5;font-size:0.8em;margin-left:12px">${remaining}s</span>`;
+    countTimer = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(countTimer); countTimer = null;
+        labelEl.textContent = step.text;
+        idx++; runStep();
+      } else {
+        labelEl.innerHTML = `${step.text} <span style="opacity:0.5;font-size:0.8em;margin-left:12px">${remaining}s</span>`;
+      }
+    }, 1000);
+  } else {
+    let c = 1;
+    updateCountInLabel(labelEl, step, c);
+    countTimer = setInterval(() => {
+      c++;
+      if (c > step.counts) {
+        clearInterval(countTimer); countTimer = null;
+        labelEl.textContent = stepBaseText(step);
+        idx++;
+        runStep();
+      } else {
+        updateCountInLabel(labelEl, step, c);
+      }
+    }, SPEED);
+  }
+}
+
+function togglePause() {
+  const btn = document.getElementById('pauseBtn');
+  if (paused) {
+    paused = false;
+    btn.textContent = 'Pause (Space)';
+    runStep();
+  } else {
+    paused = true;
+    btn.textContent = 'Resume (Space)';
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (countTimer) { clearInterval(countTimer); countTimer = null; }
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') { e.preventDefault(); togglePause(); }
+});
+</script>
+</body>
+</html>
