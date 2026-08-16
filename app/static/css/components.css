@@ -8,7 +8,7 @@
     justify-content: center;
     gap: var(--sp-2);
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-4);
+    padding: var(--sp-3) var(--sp-5);
     border: 1px solid transparent;
     border-radius: var(--r-sm);
     background: var(--surface-alt);
@@ -19,13 +19,14 @@
     line-height: 1;
     cursor: pointer;
     transition: background var(--transition), color var(--transition),
-                border-color var(--transition), transform var(--transition);
+                border-color var(--transition), transform var(--transition),
+                box-shadow var(--transition);
     text-decoration: none;
     white-space: nowrap;
 }
 
-.btn:hover { background: var(--border-soft); }
-.btn:active { transform: translateY(1px); }
+.btn:hover { background: var(--border-soft); transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
 .btn:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
@@ -40,14 +41,22 @@
 .btn--primary {
     background: var(--primary);
     color: var(--text-on-primary);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
 }
-.btn--primary:hover { background: var(--primary-hover); }
+.btn--primary:hover {
+    background: var(--primary-hover);
+    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+}
 
 .btn--danger {
     background: var(--danger);
     color: var(--text-on-primary);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
 }
-.btn--danger:hover { background: var(--danger-hover); }
+.btn--danger:hover {
+    background: var(--danger-hover);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+}
 
 .btn--success {
     background: var(--success);
@@ -84,19 +93,38 @@
 
 .card {
     background: var(--surface);
-    border: 1px solid var(--border-soft);
+    border: 1px solid rgba(0, 0, 0, 0.03);
     border-radius: var(--r-lg);
     padding: var(--sp-5);
     box-shadow: var(--shadow-sm);
-    transition: box-shadow var(--transition), transform var(--transition);
+    transition: transform 0.4s var(--ease-lift), box-shadow 0.4s var(--ease-lift);
+    animation: cardIn 0.6s ease-out backwards;
+}
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-md);
 }
 .card--interactive:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: var(--shadow-lg);
 }
+
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Stagger the entrance across a grid, as the original dashboard did */
+.grid > .card:nth-child(1) { animation-delay: 0.05s; }
+.grid > .card:nth-child(2) { animation-delay: 0.10s; }
+.grid > .card:nth-child(3) { animation-delay: 0.15s; }
+.grid > .card:nth-child(4) { animation-delay: 0.20s; }
+.grid > .card:nth-child(5) { animation-delay: 0.25s; }
+.grid > .card:nth-child(6) { animation-delay: 0.30s; }
+
 .card__title {
     font-size: var(--fs-lg);
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text);
     margin: 0 0 var(--sp-2);
 }
@@ -202,9 +230,24 @@
 }
 .page-header h1 {
     font-size: var(--fs-2xl);
-    font-weight: 700;
-    color: var(--text);
+    font-weight: 800;
     margin: 0;
+    /* Animated gradient wordmark, as the original headings had */
+    background: linear-gradient(45deg, #2c3e50, var(--primary), #2c3e50);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 4s ease infinite;
+}
+
+@keyframes gradientText {
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 100% center; }
+}
+
+:root[data-theme="dark"] .page-header h1 {
+    background-image: linear-gradient(45deg, #e8eaed, var(--primary-soft), #e8eaed);
 }
 .page-header p {
     color: var(--text-muted);

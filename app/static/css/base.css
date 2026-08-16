@@ -7,8 +7,16 @@ body {
     font-family: var(--font);
     font-size: var(--fs-md);
     color: var(--text);
-    background: var(--bg);
+    /* Slow animated wash, as the original site had */
+    background: linear-gradient(-45deg, var(--bg), var(--primary-soft), var(--bg), var(--primary-soft));
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     -webkit-text-size-adjust: 100%;
+}
+
+@keyframes gradientBG {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 h1, h2, h3, h4, p, figure { margin: 0; }
@@ -21,6 +29,7 @@ button { font: inherit; }
 .topbar {
     height: var(--topbar-h);
     background: var(--surface);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -34,8 +43,9 @@ button { font: inherit; }
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    font-weight: 600;
-    color: var(--text);
+    font-weight: 700;
+    font-size: var(--fs-lg);
+    color: var(--primary);
     text-decoration: none;
 }
 .topbar__logo img { width: 30px; height: 30px; border-radius: var(--r-full); }
@@ -43,11 +53,11 @@ button { font: inherit; }
 .topbar__links a {
     color: var(--text-muted);
     font-size: var(--fs-lg);
-    transition: color var(--transition);
+    transition: transform var(--transition), color var(--transition);
     display: inline-flex;
     align-items: center;
 }
-.topbar__links a:hover { color: var(--primary); }
+.topbar__links a:hover { color: var(--primary); transform: translateY(-2px); }
 
 /* ---------- Shell ---------- */
 

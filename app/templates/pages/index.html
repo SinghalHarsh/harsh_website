@@ -12,19 +12,25 @@
 </div>
 
 <div class="grid grid--3 stat-row">
-    <article class="card stat">
+    <a class="card card--interactive stat" href="{{ url_for('habits.habits') }}">
+        <span class="stat__icon stat__icon--habit"><i class="fa-solid fa-fire"></i></span>
+        <span class="stat__title">Habit Score</span>
         <span class="stat__value">{{ habit_score.score }}</span>
-        <span class="stat__label">Today's habit score</span>
+        <span class="stat__label">{{ habit_score.streak_bonus }}% streak momentum</span>
         <div class="progress"><div class="progress__bar" style="width: {{ habit_score.score }}%"></div></div>
-    </article>
-    <article class="card stat">
+    </a>
+    <a class="card card--interactive stat" href="{{ url_for('habits.habits') }}">
+        <span class="stat__icon stat__icon--done"><i class="fa-solid fa-check-double"></i></span>
+        <span class="stat__title">Habits Done</span>
         <span class="stat__value">{{ habits_completed }}<small>/{{ habits_total }}</small></span>
-        <span class="stat__label">Habits done</span>
-    </article>
-    <article class="card stat">
+        <span class="stat__label">completed today</span>
+    </a>
+    <a class="card card--interactive stat" href="{{ url_for('goals.goals') }}">
+        <span class="stat__icon stat__icon--goal"><i class="fa-solid fa-bullseye"></i></span>
+        <span class="stat__title">Active Goals</span>
         <span class="stat__value">{{ active_goals_count }}</span>
-        <span class="stat__label">Active goals</span>
-    </article>
+        <span class="stat__label">in progress</span>
+    </a>
 </div>
 
 <div class="grid grid--2">
@@ -114,18 +120,46 @@
 
 {% block styles %}
 <style>
-    .stat-row { margin-bottom: var(--sp-5); }
-    .stat { display: flex; flex-direction: column; gap: var(--sp-1); }
-    .stat__value { font-size: var(--fs-2xl); font-weight: 700; color: var(--primary); line-height: 1; }
-    .stat__value small { font-size: var(--fs-md); color: var(--text-subtle); font-weight: 400; }
-    .stat__label { font-size: var(--fs-sm); color: var(--text-muted); }
+    .stat-row { margin-bottom: var(--sp-6); }
+    .stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--sp-1);
+        padding: var(--sp-6) var(--sp-5);
+        text-decoration: none;
+        color: inherit;
+    }
+    .stat__icon {
+        width: 60px;
+        height: 60px;
+        border-radius: var(--r-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        margin-bottom: var(--sp-3);
+        background: var(--surface-alt);
+        transition: transform 0.3s var(--ease-lift);
+    }
+    .stat:hover .stat__icon { transform: scale(1.12) rotate(8deg); }
+    .stat__icon--habit { background: var(--warning-soft); color: var(--warning); }
+    .stat__icon--done  { background: var(--success-soft); color: var(--success); }
+    .stat__icon--goal  { background: var(--primary-soft); color: var(--primary); }
+
+    .stat__title { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+    .stat__value { font-size: 2.5rem; font-weight: 800; color: var(--text); line-height: 1.2; }
+    .stat__value small { font-size: var(--fs-lg); color: var(--text-subtle); font-weight: 500; }
+    .stat__label { font-size: var(--fs-sm); color: var(--text-subtle); }
 
     .progress {
+        width: 100%;
         height: 6px;
         background: var(--surface-alt);
         border-radius: var(--r-full);
         overflow: hidden;
-        margin-top: var(--sp-2);
+        margin-top: var(--sp-3);
     }
     .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
 
