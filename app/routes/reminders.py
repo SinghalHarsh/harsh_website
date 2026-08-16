@@ -59,9 +59,14 @@ def add_reminder():
     result = db.reminders.insert_one(data)
 
     if _wants_json():
-        return jsonify({'status': 'success', 'id': str(result.inserted_id), **{
-            k: v for k, v in data.items() if k != 'created_at'
-        }})
+        return jsonify({
+            'status': 'success',
+            'id': str(result.inserted_id),
+            'title': title,
+            'date': date,
+            'recurrence': data['recurrence'],
+            'category': data['category'],
+        })
     return redirect(url_for('reminders.reminder'))
 
 

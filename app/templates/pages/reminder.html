@@ -3,456 +3,196 @@
 
 {% block title %}Reminders{% endblock %}
 
+{% macro reminder_row(reminder, is_missed=False) %}
+<li class="list__item" data-id="{{ reminder._id }}" data-date="{{ reminder.date }}"
+    data-recurring="{{ 'yes' if reminder.recurrence else 'no' }}">
+    <span>
+        {{ reminder.title }}
+        {% if reminder.category %}<span class="badge badge--primary">{{ reminder.category }}</span>{% endif %}
+        {% if reminder.recurrence %}
+        <span class="badge"><i class="fa-solid fa-repeat"></i> {{ reminder.recurrence }}</span>
+        {% endif %}
+        {% if is_missed %}<span class="badge badge--danger">{{ reminder.date }}</span>{% endif %}
+    </span>
+    <span class="row">
+        <button class="btn btn--icon is-success" data-complete data-tooltip="Mark done"
+                aria-label="Complete {{ reminder.title }}">
+            <i class="fa-regular fa-circle-check"></i>
+        </button>
+        <button class="btn btn--icon is-danger" data-delete data-tooltip="Delete"
+                aria-label="Delete {{ reminder.title }}">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    </span>
+</li>
+{% endmacro %}
+
 {% block content %}
-<style>
-    /* Custom Tooltip (reusing class from style.css but ensuring visibility) */
-    .custom-tooltip {
-        z-index: 10000; /* Ensure it's on top */
-    }
-</style>
+{% call page_header('Reminders', today_date) %}
+    <button class="btn btn--primary" data-modal-open="addReminderModal">
+        <i class="fa-solid fa-plus"></i> New reminder
+    </button>
+{% endcall %}
 
-{{ page_header('Reminders', 'Never forget a task.') }}
+<div class="grid grid--2">
+    <section class="card">
+        <h2 class="card__title">Today</h2>
+        {% if todays_reminders %}
+        <ul class="list">{% for r in todays_reminders %}{{ reminder_row(r) }}{% endfor %}</ul>
+        {% else %}{{ empty_state('Nothing due today.', 'fa-solid fa-bell') }}{% endif %}
+    </section>
 
-<div class="habit-container">
+    <section class="card">
+        <h2 class="card__title">Missed</h2>
+        {% if missed_reminders %}
+        <ul class="list">{% for r in missed_reminders %}{{ reminder_row(r, is_missed=True) }}{% endfor %}</ul>
+        {% else %}{{ empty_state('Nothing missed. Well done.', 'fa-solid fa-circle-check') }}{% endif %}
+    </section>
+</div>
 
-    <!-- Today's Reminders -->
-    <div class="section-header">
-        <h2>Today's Reminders</h2>
-        <span style="font-size: 0.9rem; color: #7f8c8d;">{{ today_date }}</span>
-    </div>
-
-    {% if todays_reminders %}
-        {% for r in todays_reminders %}
-        <div class="reminder-card {{ 'completed' if r.completed else '' }}" id="reminder-{{ r.original_id if r.original_id else r._id }}-{{ today_iso }}">
-            <div class="reminder-title">
-                {% if r.category == 'Birthday' %}
-                <i class="fa-solid fa-cake-candles" style="color: #e67e22;"></i>
-                {% elif r.category == 'Anniversary' %}
-                <i class="fa-solid fa-heart" style="color: #e74c3c;"></i>
-                {% elif r.category == 'Work' %}
-                <i class="fa-solid fa-briefcase" style="color: #3498db;"></i>
-                {% elif r.category == 'Personal' %}
-                <i class="fa-solid fa-user" style="color: #9b59b6;"></i>
-                {% elif r.category == 'Bill' %}
-                <i class="fa-solid fa-file-invoice-dollar" style="color: #27ae60;"></i>
-                {% else %}
-                <i class="fa-solid fa-bell"></i>
-                {% endif %}
-                 {{ r.title }}
-                {% if r.recurrence == 'yearly' %}
-                <span class="reminder-badge">Yearly</span>
-                {% elif r.recurrence == 'monthly' %}
-                <span class="reminder-badge">Monthly</span>
-                {% endif %}
-            </div>
-            <div class="reminder-action">
-                {% if not r.completed %}
-                <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ today_iso }}')"></i>
-                {% else %}
-                <i class="fa-solid fa-check-double" style="color: #27ae60; margin-right: 12px;" title="Completed"></i>
-                {% endif %}
-                <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ today_iso }}')"></i>
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p style="color: #999; font-style: italic;">No reminders for today.</p>
-    {% endif %}
-    
-    <!-- Missed Reminders -->
-    {% if missed_reminders %}
-    <div class="section-header" style="margin-top: 30px;">
-        <h2 style="color: #e74c3c;">Missed Reminders</h2>
-    </div>
-    {% for r in missed_reminders %}
-    <div class="reminder-card" id="reminder-{{ r.original_id if r.original_id else r._id }}-{{ r.date }}" style="border-left: 4px solid #e74c3c;">
-        <div class="reminder-title">
-            {% if r.category == 'Birthday' %}
-            <i class="fa-solid fa-cake-candles" style="color: #e74c3c;"></i>
-            {% elif r.category == 'Anniversary' %}
-            <i class="fa-solid fa-heart" style="color: #e74c3c;"></i>
-            {% elif r.category == 'Work' %}
-            <i class="fa-solid fa-briefcase" style="color: #e74c3c;"></i>
-            {% elif r.category == 'Personal' %}
-            <i class="fa-solid fa-user" style="color: #e74c3c;"></i>
-            {% elif r.category == 'Bill' %}
-            <i class="fa-solid fa-file-invoice-dollar" style="color: #e74c3c;"></i>
-            {% else %}
-            <i class="fa-solid fa-bell" style="color: #e74c3c;"></i>
-            {% endif %}
-             {{ r.title }}
-            <span class="reminder-date" style="color: #e74c3c;">{{ r.date }}</span>
-            {% if r.recurrence == 'yearly' %}
-            <span class="reminder-badge">Yearly</span>
-            {% elif r.recurrence == 'monthly' %}
-            <span class="reminder-badge">Monthly</span>
-            {% endif %}
-        </div>
-        <div class="reminder-action">
-            <i class="fa-solid fa-check" style="color: #27ae60; cursor: pointer; margin-right: 12px;" onclick="markComplete('{{ r.original_id if r.original_id else r._id }}', '{{ r.date }}')"></i>
-            <i class="fa-solid fa-trash" onclick="confirmDelete('{{ r.original_id if r.original_id else r._id }}', '{{ r.title }}', '{{ r.recurrence }}', '{{ r.date }}')"></i>
+<section class="heatmap-section">
+    <div class="row row--between">
+        <h2 class="card__title">{{ selected_year }}</h2>
+        <div class="row">
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('reminders.reminder', year=selected_year - 1) }}">
+                <i class="fa-solid fa-chevron-left"></i> {{ selected_year - 1 }}
+            </a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('reminders.reminder', year=selected_year + 1) }}">
+                {{ selected_year + 1 }} <i class="fa-solid fa-chevron-right"></i>
+            </a>
         </div>
     </div>
-    {% endfor %}
-    {% endif %}
-    
-    <!-- Upcoming Reminders List Removed -->
-    
-    <!-- Calendar View -->
-    <div class="insights-wrapper" style="margin-top: 40px;">
-        <div class="controls-header" style="justify-content: space-between; border-bottom: none; padding-bottom: 0; margin-bottom: 15px;">
-            <h2 style="margin: 0; font-size: 1.1rem; color: #333;">Yearly Overview</h2>
-            <div class="year-nav">
-                <a href="{{ url_for('reminders.reminder', year=selected_year-1) }}"><i class="fa-solid fa-chevron-left"></i></a>
-                <span class="year-display">{{ selected_year }}</span>
-                <a href="{{ url_for('reminders.reminder', year=selected_year+1) }}"><i class="fa-solid fa-chevron-right"></i></a>
-            </div>
-        </div>
-        
-        <div class="heatmap-container">
-            <div class="heatmap-labels">
-                <div>Mon</div>
-                <div>Tue</div>
-                <div>Wed</div>
-                <div>Thu</div>
-                <div>Fri</div>
-                <div>Sat</div>
-                <div>Sun</div>
-            </div>
-            
-            <div class="months-row">
-                {% for month in months_data %}
-                <div class="month-block">
-                    <div class="month-name">{{ month.name }}</div>
-                    <div class="heatmap-grid">
-                        {% for day in month.days %}
-                            {% if day is none %}
-                                <div class="heatmap-cell empty" style="visibility:hidden;"></div>
-                            {% else %}
-                                <div class="heatmap-cell {{ 'today' if day.date == today_date else '' }}"
-                                     style="background-color: {{ 'rgba(46, 204, 113, 0.8)' if day.reminders and day.reminders[0].completed else ('rgba(46, 204, 113, ' ~ (0.2 + (day.count * 0.2)) ~ ')' if day.count > 0 else '#f0f2f5') }};"
-                                     {% if day.reminders %}
-                                     data-tooltip="{{ day.display_date }}: {{ day.reminders | map(attribute='title') | join(', ') }} {{ '(Completed)' if day.reminders[0].completed else '' }}"
-                                     {% else %}
-                                     data-tooltip="{{ day.display_date }}: No events"
-                                     {% endif %}>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
+
+    <div class="heatmap">
+        {% for month in months_data %}
+        <div class="heatmap__month">
+            <div class="heatmap__label">{{ month.name }}</div>
+            <div class="heatmap__grid">
+                {% for day in month.days %}
+                    {% if not day %}
+                        <span class="heatmap__cell heatmap__cell--empty"></span>
+                    {% elif day.future %}
+                        <span class="heatmap__cell heatmap__cell--future"></span>
+                    {% else %}
+                        <span class="heatmap__cell"
+                              data-tooltip="{{ day.display_date }}{% if day.count %} — {{ day.count }} reminder{{ 's' if day.count > 1 }}{% endif %}"
+                              style="{% if day.count %}background: var(--primary); opacity: {{ [0.35 + day.count * 0.25, 1] | min }}{% endif %}"></span>
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>
+        {% endfor %}
     </div>
+</section>
 
-    <!-- Manage Reminders Section (Moved to Bottom) -->
-    <div class="manage-container" style="margin-top: 40px;">
-        <div class="manage-header" onclick="toggleManage()">
-            <h3>Add Reminder</h3>
-            <i class="fa-solid fa-chevron-down" id="toggleIcon"></i>
-        </div>
-        <div class="manage-content" id="manageContent">
-            <div class="add-form" style="border:none; padding:0; box-shadow:none; margin-top:0;">
-                <div class="add-habit-wrapper" style="flex-wrap: wrap; align-items: flex-start;">
-                    <div style="flex: 2; min-width: 200px;">
-                        <input type="text" id="reminderTitle" placeholder="Event Title" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <input type="date" id="reminderDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <select id="reminderCategory" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                            <option value="">Category (Optional)</option>
-                            <option value="Birthday">Birthday</option>
-                            <option value="Anniversary">Anniversary</option>
-                            <option value="Work">Work</option>
-                            <option value="Personal">Personal</option>
-                            <option value="Bill">Bill</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <select id="reminderRecurrence" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                            <option value="">One-time</option>
-                            <option value="yearly">Yearly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                    <div style="flex: 1; min-width: 150px; display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="reminderDays" placeholder="Days before" value="0" style="width: 160px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                        <button type="button" onclick="addReminder()" class="btn-primary" style="white-space: nowrap;">Add</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% call modal('addReminderModal', 'New reminder') %}
+<form method="POST" action="{{ url_for('reminders.add_reminder') }}">
+    <div class="field">
+        <label class="field__label" for="title">Title</label>
+        <input class="input" type="text" id="title" name="title" required>
     </div>
-
-    <div id="tooltip" class="custom-tooltip"></div>
-
-    <!-- Custom Modal for Recurring Deletion -->
-    <div class="modal-overlay" id="recurringDeleteModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Delete Recurring Reminder</h3>
-                <button onclick="closeRecurringModal()" class="modal-close-btn">
-                    <i class="fa-solid fa-times"></i>
-                </button>
-            </div>
-            <p style="margin-bottom: 20px; color: #4a5568;">Do you want to delete this specific occurrence or the entire series?</p>
-            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-                <button class="btn-modal-submit" onclick="confirmRecurringDelete('instance')" style="width: 100%;">Delete This Occurrence Only</button>
-                <button class="btn-modal-cancel" onclick="confirmRecurringDelete('series')" style="width: 100%; color: #e53e3e; border: 1px solid #e53e3e; background: white;">Delete Entire Series</button>
-                <button class="btn-modal-cancel" onclick="closeRecurringModal()" style="width: 100%;">Cancel</button>
-            </div>
-        </div>
+    <div class="field">
+        <label class="field__label" for="date">Date</label>
+        <input class="input" type="date" id="date" name="date" value="{{ today_iso }}" required>
     </div>
+    <div class="field">
+        <label class="field__label" for="category">Category</label>
+        <select class="select" id="category" name="category">
+            <option value="">None</option>
+            <option value="Birthday">Birthday</option>
+            <option value="Anniversary">Anniversary</option>
+            <option value="Task">Task</option>
+            <option value="Payment">Payment</option>
+        </select>
+    </div>
+    <div class="field">
+        <label class="field__label" for="recurrence">Repeats</label>
+        <select class="select" id="recurrence" name="recurrence">
+            <option value="">Once</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+        </select>
+    </div>
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Add</button>
+    </div>
+</form>
+{% endcall %}
 
+{% call modal('deleteScopeModal', 'Delete recurring reminder', '420px') %}
+<div class="modal__body">This reminder repeats. Delete only this date, or the whole series?</div>
+<div class="modal__actions">
+    <button class="btn btn--ghost" data-modal-close>Cancel</button>
+    <button class="btn btn--ghost" id="deleteInstance">This date only</button>
+    <button class="btn btn--danger" id="deleteSeries">Whole series</button>
 </div>
+{% endcall %}
+{% endblock %}
 
+{% block styles %}
+<style>
+    .list { list-style: none; margin: 0; padding: 0; }
+    .list__item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--sp-3);
+        padding: var(--sp-3) 0;
+        border-bottom: 1px solid var(--border-soft);
+        flex-wrap: wrap;
+    }
+    .list__item:last-child { border-bottom: none; }
+    .list__item.is-done { opacity: 0.45; text-decoration: line-through; }
+    .heatmap-section { margin-top: var(--sp-6); }
+    .heatmap-section .heatmap { margin-top: var(--sp-4); }
+</style>
+{% endblock %}
+
+{% block scripts %}
 <script>
-    let pendingDeleteId = null;
-    let pendingDeleteDate = null;
+let pending = null;
 
-    function toggleManage() {
-        const content = document.getElementById('manageContent');
-        const icon = document.getElementById('toggleIcon');
-        content.classList.toggle('open');
-        icon.classList.toggle('fa-chevron-up');
-        icon.classList.toggle('fa-chevron-down');
+async function remove(id, mode, date) {
+    await api.post("{{ url_for('reminders.delete_reminder') }}", { id, mode, date });
+}
+
+document.addEventListener('click', async (e) => {
+    const item = e.target.closest('.list__item');
+    if (!item) return;
+    const { id, date, recurring } = item.dataset;
+
+    if (e.target.closest('[data-complete]')) {
+        await api.post("{{ url_for('reminders.complete_reminder') }}", { id, date });
+        item.classList.add('is-done');
+        item.querySelectorAll('button').forEach((b) => (b.disabled = true));
     }
 
-    async function addReminder() {
-        const title = document.getElementById('reminderTitle').value;
-        const date = document.getElementById('reminderDate').value;
-        const recurrence = document.getElementById('reminderRecurrence').value;
-        const days = document.getElementById('reminderDays').value;
-        const category = document.getElementById('reminderCategory').value;
-
-        if (!title || !date) {
-            alert('Please enter a title and date');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('date', date);
-        formData.append('recurrence', recurrence);
-        if (category) formData.append('category', category);
-        if (days) formData.append('remind_days', days);
-
-        try {
-            const response = await fetch("{{ url_for('reminders.add_reminder') }}", {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                // Clear inputs
-                document.getElementById('reminderTitle').value = '';
-                document.getElementById('reminderDate').value = '';
-                document.getElementById('reminderDays').value = '0';
-                document.getElementById('reminderCategory').value = '';
-                
-                // Add to list
-                createReminderItem(data);
-                
-                // Hide 'no reminders' message
-                const msg = document.getElementById('noRemindersMsg');
-                if (msg) msg.style.display = 'none';
-            }
-        } catch (e) {
-            console.error(e);
-            location.reload();
-        }
-    }
-    
-        async function markComplete(id, date) {
-        const formData = new FormData();
-        formData.append('id', id);
-        formData.append('date', date);
-        try {
-            const response = await fetch("{{ url_for('reminders.complete_reminder') }}", {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                const el = document.getElementById(`reminder-${id}-${date}`);
-                if (el) {
-                    // Check if it's a missed reminder (date < today)
-                    // We can infer this if the element has the red border style or by comparing dates
-                    // But simpler: if the date passed is NOT today's date (which we can get from template or just check logic)
-                    // Actually, we can just check if the element is inside the "Missed Reminders" section?
-                    // Or better: compare date string.
-                    
-                    const todayIso = "{{ today_iso }}";
-                    if (date !== todayIso) {
-                        // It's a missed reminder -> Remove it
-                        el.remove();
-                        
-                        // Check if missed section is empty
-                        // This is a bit harder without a container ID, but we can check if any missed reminders remain
-                        // For now, just removing the element is enough.
-                    } else {
-                        // It's today's reminder -> Mark completed
-                        el.classList.add('completed');
-                        // Update icon
-                        const icon = el.querySelector('.fa-check');
-                        if (icon) {
-                            icon.classList.remove('fa-check');
-                            icon.classList.add('fa-check-double');
-                            icon.style.cursor = 'default';
-                            icon.onclick = null;
-                            icon.title = "Completed";
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.error(e);
-            location.reload();
-        }
-    }
-
-    function createReminderItem(data) {
-        const list = document.getElementById('reminderList');
-        if (!list) return; // Safety check
-        const div = document.createElement('div');
-        div.className = 'habit-list-item';
-        div.id = `reminder-${data.id}-${data.date}`;
-        
-        let tags = `<span class="suggestion-tag">${data.date}</span>`;
-        if (data.recurrence === 'yearly') {
-            tags += `<span class="suggestion-tag active">Yearly</span>`;
-        } else if (data.recurrence === 'monthly') {
-            tags += `<span class="suggestion-tag active">Monthly</span>`;
-        }
-        
-        let icon = '<i class="fa-solid fa-bell"></i>';
-        if (data.category === 'Birthday') icon = '<i class="fa-solid fa-cake-candles" style="color: #e67e22;"></i>';
-        else if (data.category === 'Anniversary') icon = '<i class="fa-solid fa-heart" style="color: #e74c3c;"></i>';
-        else if (data.category === 'Work') icon = '<i class="fa-solid fa-briefcase" style="color: #3498db;"></i>';
-        else if (data.category === 'Personal') icon = '<i class="fa-solid fa-user" style="color: #9b59b6;"></i>';
-        else if (data.category === 'Bill') icon = '<i class="fa-solid fa-file-invoice-dollar" style="color: #27ae60;"></i>';
-
-        div.innerHTML = `
-            <div class="habit-info-row" style="display: flex; align-items: center; gap: 15px;">
-                <span class="habit-name">${icon} ${data.title}</span>
-                ${tags}
-            </div>
-            <div class="habit-meta">
-                <button onclick="confirmDelete('${data.id}', '${data.title}', '${data.recurrence}', '${data.date}')" class="delete-btn">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </div>
-        `;
-        list.prepend(div);
-    }
-
-    function confirmDelete(id, title, recurrence, date) {
-        if (recurrence === 'yearly' || recurrence === 'monthly') {
-            pendingDeleteId = id;
-            pendingDeleteDate = date;
-            const modal = document.getElementById('recurringDeleteModal');
-            modal.classList.add('active');
+    if (e.target.closest('[data-delete]')) {
+        if (recurring === 'yes') {
+            pending = { id, date, item };
+            modal.open('deleteScopeModal');
         } else {
-            showConfirm(`Delete reminder '${title}'?`, () => deleteReminder(id, 'series'));
-        }
-    }
-
-    // Set up click-outside-to-close for recurring modal ONCE
-    document.addEventListener('DOMContentLoaded', function() {
-        const recurringModal = document.getElementById('recurringDeleteModal');
-        if (recurringModal) {
-            recurringModal.addEventListener('click', function(e) {
-                if (e.target === recurringModal) closeRecurringModal();
+            modal.confirm('Delete this reminder?', async () => {
+                await remove(id, 'series', date);
+                item.remove();
             });
         }
-    });
-
-    function closeRecurringModal() {
-        const modal = document.getElementById('recurringDeleteModal');
-        modal.classList.remove('active');
-        pendingDeleteId = null;
-        pendingDeleteDate = null;
     }
+});
 
-    function confirmRecurringDelete(mode) {
-        if (pendingDeleteId) {
-            deleteReminder(pendingDeleteId, mode, pendingDeleteDate);
-            closeRecurringModal();
-        }
-    }
+document.getElementById('deleteInstance').addEventListener('click', async () => {
+    if (!pending) return;
+    await remove(pending.id, 'instance', pending.date);
+    pending.item.remove();
+    modal.close('deleteScopeModal');
+});
 
-    async function deleteReminder(id, mode, date = null) {
-        const formData = new FormData();
-        formData.append('id', id);
-        formData.append('mode', mode);
-        if (date) formData.append('date', date);
-        
-        try {
-            const response = await fetch("{{ url_for('reminders.delete_reminder') }}", {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                if (mode === 'series') {
-                    const elements = document.querySelectorAll(`[id^="reminder-${id}-"]`);
-                    elements.forEach(el => el.remove());
-                } else {
-                    const el = document.getElementById(`reminder-${id}-${date}`);
-                    if (el) el.remove();
-                }
-                
-                // Check if empty
-                const list = document.getElementById('reminderList');
-                if (list) {
-                    if (list.children.length === 0 || (list.children.length === 1 && list.children[0].id === 'noRemindersMsg')) {
-                        const msg = document.getElementById('noRemindersMsg');
-                        if (msg) msg.style.display = 'block';
-                        else list.innerHTML = '<p id="noRemindersMsg" style="color: #999; font-style: italic;">No upcoming reminders.</p>';
-                    }
-                }
-            }
-        } catch (e) {
-            console.error(e);
-            location.reload();
-        }
-    }
-
-    // Tooltip Logic (Shared with Habits)
-    const tooltip = document.getElementById('tooltip');
-    const cells = document.querySelectorAll('.heatmap-cell');
-
-    cells.forEach(cell => {
-        cell.addEventListener('mouseenter', (e) => {
-            const text = cell.getAttribute('data-tooltip');
-            if (text) {
-                tooltip.textContent = text;
-                tooltip.style.display = 'block';
-                positionTooltip(e);
-            }
-        });
-
-        cell.addEventListener('mousemove', (e) => {
-            positionTooltip(e);
-        });
-
-        cell.addEventListener('mouseleave', () => {
-            tooltip.style.display = 'none';
-        });
-    });
-
-    function positionTooltip(e) {
-        const x = e.pageX + 10;
-        const y = e.pageY + 10;
-        tooltip.style.left = x + 'px';
-        tooltip.style.top = y + 'px';
-    }
+document.getElementById('deleteSeries').addEventListener('click', async () => {
+    if (!pending) return;
+    await remove(pending.id, 'series', pending.date);
+    pending.item.remove();
+    modal.close('deleteScopeModal');
+});
 </script>
 {% endblock %}
