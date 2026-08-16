@@ -3,108 +3,86 @@ from werkzeug.utils import secure_filename
 import os
 import random
 from datetime import datetime
+
 from app.extensions import db
+from app.services import habits as habit_service
+from app.services import reminders as reminder_service
 
 main_bp = Blueprint('main', __name__)
 
+ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+
+
+def _quotes_dir():
+    return os.path.join(current_app.static_folder, 'images', 'quotes')
+
+
+def _all_quote_content():
+    """Text quotes from Mongo plus image quotes from static/."""
+    content = [{'type': 'text', 'data': q} for q in db.quotes.find()]
+
+    images_dir = _quotes_dir()
+    if os.path.isdir(images_dir):
+        content += [
+            {'type': 'image', 'filename': f}
+            for f in os.listdir(images_dir)
+            if os.path.splitext(f)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+        ]
+    return content
+
+
 @main_bp.route('/')
 def home():
-    # Habits Stats
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    all_habits = list(db.habits.find({"active": True}))
-    habits_completed = 0
-    pending_habits = []
-    
-    for h in all_habits:
-        if today_str in h.get('history', []):
-            habits_completed += 1
-        else:
-            pending_habits.append(h)
-            
-    habits_total = len(all_habits)
-    
-    # Goals Stats
-    active_goals_cursor = db.goals.find({"completed": {"$ne": True}})
-    active_goals = list(active_goals_cursor)
-    active_goals_count = len(active_goals)
-    
-    # Reminders Today
-    reminders = list(db.reminders.find())
-    todays_reminders = []
-    
-    def is_skipped(reminder, target_date_str):
-        skipped = reminder.get('skipped_dates', [])
-        return target_date_str in skipped
+    today = datetime.now()
+    today_str = today.strftime('%Y-%m-%d')
 
-    for r in reminders:
-        if r.get('date') == today_str:
-             if not is_skipped(r, today_str):
-                 todays_reminders.append(r)
-        elif r.get('recurrence') == 'yearly' and r.get('date')[5:] == today_str[5:]:
-             if not is_skipped(r, today_str):
-                 todays_reminders.append(r)
+    active_habits = list(db.habits.find({"active": True, "deleted": {"$ne": True}}))
+    for habit in active_habits:
+        habit_service.annotate(habit, today)
 
-    reminders_today_count = len(todays_reminders)
+    pending_habits = [h for h in active_habits if not h['completed_today']]
+    score = habit_service.daily_score(active_habits, today)
 
-    # Quotes Logic (Random Quote)
-    text_quotes = list(db.quotes.find())
-    images_dir = os.path.join(current_app.static_folder, 'images', 'quotes')
-    image_quotes = []
-    if os.path.exists(images_dir):
-        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+    active_goals = list(db.goals.find({"completed": {"$ne": True}}))
+    todays_reminders = reminder_service.active_on(list(db.reminders.find()), today_str)
 
-    all_content = []
-    for q in text_quotes:
-        all_content.append({'type': 'text', 'data': q})
-    for img in image_quotes:
-        all_content.append({'type': 'image', 'filename': img})
-    
-    selected_quote = random.choice(all_content) if all_content else None
+    all_content = _all_quote_content()
 
-    return render_template('index.html', 
-                           habits_completed=habits_completed, 
-                           habits_total=habits_total,
-                           pending_habits=pending_habits,
-                           active_goals_count=active_goals_count,
-                           active_goals=active_goals,
-                           reminders_today_count=reminders_today_count,
-                           todays_reminders=todays_reminders,
-                           selected_quote=selected_quote)
+    return render_template(
+        'pages/index.html',
+        habits_completed=score['completed'],
+        habits_total=score['total'],
+        habit_score=score,
+        pending_habits=pending_habits,
+        active_goals_count=len(active_goals),
+        active_goals=active_goals,
+        reminders_today_count=len(todays_reminders),
+        todays_reminders=todays_reminders,
+        selected_quote=random.choice(all_content) if all_content else None,
+        today_iso=today_str,
+    )
+
 
 @main_bp.route('/quotes')
 def quotes():
-    # 1. Get text quotes from DB
-    text_quotes = list(db.quotes.find())
-    
-    # 2. Get image quotes from static folder
-    images_dir = os.path.join(current_app.static_folder, 'images', 'quotes')
-    image_quotes = []
-    if os.path.exists(images_dir):
-        image_quotes = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+    all_content = _all_quote_content()
+    return render_template(
+        'pages/quotes.html',
+        content=random.choice(all_content) if all_content else None,
+        total_quotes=len(all_content),
+    )
 
-    all_content = []
-    for q in text_quotes:
-        all_content.append({'type': 'text', 'data': q})
-        
-    for img in image_quotes:
-        all_content.append({'type': 'image', 'filename': img})
-    
-    # 4. Pick one random item
-    selected_content = random.choice(all_content) if all_content else None
-    
-    return render_template('quotes.html', content=selected_content, total_quotes=len(all_content))
 
 @main_bp.route('/quotes/upload', methods=['POST'])
 def upload_quote():
-    if 'file' not in request.files:
+    file = request.files.get('file')
+    if not file or not file.filename:
         return redirect(url_for('main.quotes'))
-    file = request.files['file']
-    if file.filename == '':
+
+    if os.path.splitext(file.filename)[1].lower() not in ALLOWED_IMAGE_EXTENSIONS:
         return redirect(url_for('main.quotes'))
-    if file:
-        filename = secure_filename(file.filename)
-        images_dir = os.path.join(current_app.static_folder, 'images', 'quotes')
-        if not os.path.exists(images_dir):
-            os.makedirs(images_dir)
-        file.save(os.path.join(images_dir, filename))
+
+    images_dir = _quotes_dir()
+    os.makedirs(images_dir, exist_ok=True)
+    file.save(os.path.join(images_dir, secure_filename(file.filename)))
     return redirect(url_for('main.quotes'))

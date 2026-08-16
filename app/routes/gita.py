@@ -77,7 +77,7 @@ def clean_text(text, is_sanskrit=False):
 def gita_jar():
     verses = load_all_verses()
     total_verses = len(verses)
-    return render_template('gita.html', total_verses=total_verses)
+    return render_template('pages/gita.html', total_verses=total_verses)
 
 @gita_bp.route('/api/gita/random')
 def gita_random():

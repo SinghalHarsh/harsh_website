@@ -1,0 +1,236 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
+
+{% block title %}Gita Wisdom{% endblock %}
+
+{% block content %}
+<style>
+    .gita-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    /* Modal Styles - Using global styles from style.css */
+    .verse-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    .verse-emotion {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .verse-ref {
+        font-size: 1.1rem;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    .verse-text {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .sanskrit {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        white-space: pre-line;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.8;
+    }
+    .copy-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7f8c8d;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .copy-btn:hover {
+        background: #e0e0e0;
+        color: #2c3e50;
+    }
+    .hindi {
+        font-size: 1.15rem;
+        color: #d35400;
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+    .english {
+        font-size: 1.05rem;
+        color: #34495e;
+        font-style: italic;
+        line-height: 1.6;
+    }
+    
+    .gita-modal {
+        max-width: 800px !important;
+    }
+
+    /* Wisdom Jar Button */
+    .wisdom-jar-btn {
+        background: linear-gradient(135deg, #FF9966 0%, #FF5E62 100%);
+        color: white;
+        border: none;
+        padding: 20px 40px;
+        border-radius: 50px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 10px 25px rgba(255, 94, 98, 0.4);
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 50px;
+    }
+    
+    .wisdom-jar-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(255, 94, 98, 0.5);
+    }
+    
+    .wisdom-jar-btn i {
+        font-size: 1.4rem;
+    }
+
+    @media (max-width: 768px) {
+        .modal-content {
+            padding: 25px;
+        }
+        .sanskrit {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+
+{{ page_header('Gita Wisdom', 'Receive a random verse from the Bhagavad Gita.') }}
+
+<div class="gita-container" style="display: flex; justify-content: center; align-items: center; min-height: 50vh;">
+    
+    <!-- Random Verse Button -->
+    <div style="text-align: center;">
+        <button class="wisdom-jar-btn" onclick="fetchRandomVerse()" style="flex-direction: column; gap: 5px; padding: 25px 50px; font-size: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="fa-solid fa-scroll"></i>
+                Open Wisdom Jar
+            </div>
+            <div style="font-size: 0.8rem; font-weight: 400; opacity: 0.9; margin-top: 5px;">(Drawing from {{ total_verses }} verses)</div>
+        </button>
+    </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="verseModal">
+    <div class="modal-content gita-modal" style="position: relative; padding-top: 40px;">
+        <button id="closeModalBtn" class="modal-close-btn" style="position: absolute; top: 15px; right: 15px; z-index: 10;">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <h3 class="modal-title" id="modalEmotion" style="display: none;"></h3>
+        
+        <div class="verse-header" style="border: none; padding: 0; margin-bottom: 20px;">
+            <div class="verse-ref" id="modalRef"></div>
+        </div>
+        <div class="verse-text">
+            <div style="position: relative; margin-bottom: 20px;">
+                <div class="sanskrit" id="modalSanskrit" style="margin-bottom: 0; padding: 0 40px;"></div>
+                <button onclick="copySanskrit(this)" class="copy-btn" title="Copy Shloka">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+            </div>
+            <div class="hindi" id="modalHindi"></div>
+            <div class="english" id="modalEnglish"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal Closing Logic
+    const modal = document.getElementById('verseModal');
+    const closeBtn = document.getElementById('closeModalBtn');
+
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    if (modal) {
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Escape") {
+            closeModal();
+        }
+    });
+
+    function displayVerseInModal(verse, title, color = '#2c3e50') {
+        document.getElementById('modalEmotion').innerText = '';
+        document.getElementById('modalEmotion').style.display = 'none';
+        
+        // Display Chapter Title if available
+        const chapterTitle = verse.chapter_title ? verse.chapter_title : '';
+        document.getElementById('modalRef').innerHTML = `<div style="font-size: 0.9rem; color: #95a5a6; margin-bottom: 5px;">Chapter ${verse.chapter}: ${chapterTitle}</div>Verse ${verse.verse}`;
+        
+        document.getElementById('modalSanskrit').innerText = verse.sanskrit;
+        document.getElementById('modalHindi').innerText = verse.hindi;
+        document.getElementById('modalEnglish').innerText = verse.english;
+        
+        const modal = document.getElementById('verseModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fetchRandomVerse() {
+        fetch("{{ url_for('gita.gita_random') }}")
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return alert(data.error);
+                displayVerseInModal(data, 'Random Wisdom', '#FF5E62');
+            })
+            .catch(err => console.error(err));
+    }
+
+    function copySanskrit(btn) {
+        const text = document.getElementById('modalSanskrit').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            btn.style.color = '#2ecc71';
+            btn.style.borderColor = '#2ecc71';
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+</script>
+{% endblock %}

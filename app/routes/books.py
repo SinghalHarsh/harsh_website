@@ -25,7 +25,7 @@ def books():
                 elif isinstance(completion_date, datetime) and completion_date.year == current_year:
                     completed_books.append(b)
 
-    return render_template('books.html', 
+    return render_template('pages/books.html', 
                            now=datetime.now(),
                            currently_reading=currently_reading,
                            to_read=to_read,

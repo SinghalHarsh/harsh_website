@@ -1,0 +1,177 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import empty_state %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p>{{ todays_reminders | length }} reminders · {{ pending_habits | length }} habits pending today</p>
+    </div>
+</div>
+
+<div class="grid grid--3 stat-row">
+    <article class="card stat">
+        <span class="stat__value">{{ habit_score.score }}</span>
+        <span class="stat__label">Today's habit score</span>
+        <div class="progress"><div class="progress__bar" style="width: {{ habit_score.score }}%"></div></div>
+    </article>
+    <article class="card stat">
+        <span class="stat__value">{{ habits_completed }}<small>/{{ habits_total }}</small></span>
+        <span class="stat__label">Habits done</span>
+    </article>
+    <article class="card stat">
+        <span class="stat__value">{{ active_goals_count }}</span>
+        <span class="stat__label">Active goals</span>
+    </article>
+</div>
+
+<div class="grid grid--2">
+    <section class="card">
+        <h2 class="card__title">Pending habits</h2>
+        {% if pending_habits %}
+        <ul class="list">
+            {% for habit in pending_habits %}
+            <li class="list__item" data-habit-id="{{ habit._id }}">
+                <span>{{ habit.name }}</span>
+                <button class="btn btn--icon is-success" data-log
+                        aria-label="Mark {{ habit.name }} done" data-tooltip="Mark done">
+                    <i class="fa-regular fa-circle-check"></i>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            {{ empty_state('All habits done today.', 'fa-solid fa-circle-check') }}
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2 class="card__title">Today's reminders</h2>
+        {% if todays_reminders %}
+        <ul class="list">
+            {% for reminder in todays_reminders %}
+            <li class="list__item" data-reminder-id="{{ reminder._id }}">
+                <span>
+                    {{ reminder.title }}
+                    {% if reminder.category %}
+                    <span class="badge badge--primary">{{ reminder.category }}</span>
+                    {% endif %}
+                </span>
+                <button class="btn btn--icon is-success" data-complete
+                        aria-label="Complete {{ reminder.title }}" data-tooltip="Mark done">
+                    <i class="fa-regular fa-circle-check"></i>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            {{ empty_state('Nothing due today.', 'fa-solid fa-bell') }}
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2 class="card__title">Active goals</h2>
+        {% if active_goals %}
+        <ul class="list">
+            {% for goal in active_goals %}
+            <li class="list__item" data-goal-id="{{ goal._id }}">
+                <span>{{ goal.title }}</span>
+                <button class="btn btn--icon is-success" data-complete-goal
+                        aria-label="Complete {{ goal.title }}" data-tooltip="Mark complete">
+                    <i class="fa-regular fa-circle-check"></i>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            {{ empty_state('No active goals.', 'fa-solid fa-bullseye') }}
+        {% endif %}
+    </section>
+
+    <section class="card quote">
+        <h2 class="card__title">Daily inspiration</h2>
+        {% if selected_quote %}
+            {% if selected_quote.type == 'image' %}
+            <img class="quote__image"
+                 src="{{ url_for('static', filename='images/quotes/' ~ selected_quote.filename) }}"
+                 alt="Quote" loading="lazy">
+            {% else %}
+            <blockquote class="quote__text">
+                {{ selected_quote.data.text or selected_quote.data.content or '' }}
+                {% if selected_quote.data.author %}
+                <footer class="card__meta">— {{ selected_quote.data.author }}</footer>
+                {% endif %}
+            </blockquote>
+            {% endif %}
+        {% else %}
+            {{ empty_state('No quotes yet.', 'fa-solid fa-quote-left') }}
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .stat-row { margin-bottom: var(--sp-5); }
+    .stat { display: flex; flex-direction: column; gap: var(--sp-1); }
+    .stat__value { font-size: var(--fs-2xl); font-weight: 700; color: var(--primary); line-height: 1; }
+    .stat__value small { font-size: var(--fs-md); color: var(--text-subtle); font-weight: 400; }
+    .stat__label { font-size: var(--fs-sm); color: var(--text-muted); }
+
+    .progress {
+        height: 6px;
+        background: var(--surface-alt);
+        border-radius: var(--r-full);
+        overflow: hidden;
+        margin-top: var(--sp-2);
+    }
+    .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+
+    .list { list-style: none; margin: 0; padding: 0; }
+    .list__item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--sp-3);
+        padding: var(--sp-3) 0;
+        border-bottom: 1px solid var(--border-soft);
+    }
+    .list__item:last-child { border-bottom: none; }
+    .list__item.is-done { opacity: 0.45; text-decoration: line-through; }
+
+    .quote__image { border-radius: var(--r-md); width: 100%; }
+    .quote__text { margin: 0; font-style: italic; color: var(--text-muted); line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markDone(item) {
+    item.classList.add('is-done');
+    item.querySelector('button').disabled = true;
+}
+
+document.addEventListener('click', async (e) => {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const item = button.closest('.list__item');
+    if (!item) return;
+
+    if (button.hasAttribute('data-log')) {
+        await api.post("{{ url_for('habits.log_habit') }}", { habit_id: item.dataset.habitId });
+        markDone(item);
+    } else if (button.hasAttribute('data-complete')) {
+        await api.post("{{ url_for('reminders.complete_reminder') }}", {
+            id: item.dataset.reminderId,
+            date: "{{ today_iso }}",
+        });
+        markDone(item);
+    } else if (button.hasAttribute('data-complete-goal')) {
+        await api.post("{{ url_for('goals.complete_goal') }}", { goal_id: item.dataset.goalId });
+        markDone(item);
+    }
+});
+</script>
+{% endblock %}

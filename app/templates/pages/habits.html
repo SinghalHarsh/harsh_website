@@ -1,0 +1,178 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
+
+{% block title %}Habits{% endblock %}
+
+{% block content %}
+{% call page_header('Habit Tracker', today_date) %}
+    <button class="btn btn--primary" data-modal-open="addHabitModal">
+        <i class="fa-solid fa-plus"></i> New habit
+    </button>
+{% endcall %}
+
+<section class="card score-card">
+    <div class="score-card__value">
+        <strong>{{ score.score }}</strong><span>/100</span>
+    </div>
+    <div class="score-card__detail">
+        <p class="score-card__label">Today's score</p>
+        <p class="card__meta">
+            {{ score.completed }} of {{ score.total }} habits · streak momentum {{ score.streak_bonus }}%
+        </p>
+        <div class="progress" role="progressbar" aria-valuenow="{{ score.score }}"
+             aria-valuemin="0" aria-valuemax="100">
+            <div class="progress__bar" style="width: {{ score.score }}%"></div>
+        </div>
+    </div>
+</section>
+
+{% if habits %}
+<div class="grid grid--2 habit-list">
+    {% for habit in habits %}
+    <article class="card habit" data-id="{{ habit._id }}">
+        <div class="row row--between">
+            <h3 class="card__title">{{ habit.name }}</h3>
+            <button class="btn btn--icon {{ 'is-success' if habit.completed_today }}"
+                    data-log aria-label="Toggle {{ habit.name }} for today"
+                    data-tooltip="{{ 'Completed today' if habit.completed_today else 'Mark done' }}">
+                <i class="fa-{{ 'solid' if habit.completed_today else 'regular' }} fa-circle-check"></i>
+            </button>
+        </div>
+        <div class="row row--between">
+            <span class="badge {{ 'badge--success' if habit.completed_today else 'badge--warning' }}">
+                {{ habit.status }}
+            </span>
+            <span class="card__meta">
+                <i class="fa-solid fa-fire"></i> {{ habit.streak }}d ·
+                {{ habit.days_in_current_year }} this year
+            </span>
+        </div>
+        <div class="row row--between habit__footer">
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('habits.habits', habit=habit.name) }}">
+                View heatmap
+            </a>
+            <button class="btn btn--icon is-danger" data-delete aria-label="Delete {{ habit.name }}"
+                    data-tooltip="Delete">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No habits yet. Add your first one.', 'fa-solid fa-check-double') }}
+{% endif %}
+
+<section class="heatmap-section">
+    <div class="row row--between">
+        <h2 class="card__title">
+            {{ selected_habit.name if selected_habit else 'All habits' }} · {{ selected_year }}
+        </h2>
+        <div class="row">
+            <a class="btn btn--ghost btn--sm"
+               href="{{ url_for('habits.habits', habit=request.args.get('habit', 'overall'), year=selected_year - 1) }}">
+                <i class="fa-solid fa-chevron-left"></i> {{ selected_year - 1 }}
+            </a>
+            <a class="btn btn--ghost btn--sm"
+               href="{{ url_for('habits.habits', habit=request.args.get('habit', 'overall'), year=selected_year + 1) }}">
+                {{ selected_year + 1 }} <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="heatmap">
+        {% for month in months_data %}
+        <div class="heatmap__month">
+            <div class="heatmap__label">{{ month.name }}</div>
+            <div class="heatmap__grid">
+                {% for day in month.days %}
+                    {% if not day %}
+                        <span class="heatmap__cell heatmap__cell--empty"></span>
+                    {% elif day.future %}
+                        <span class="heatmap__cell heatmap__cell--future"></span>
+                    {% elif is_overall %}
+                        <span class="heatmap__cell"
+                              data-tooltip="{{ day.display_date }} — {{ day.completed_count }} done"
+                              style="{% if day.completed_count %}background: var(--success); opacity: {{ [0.35 + day.completed_count * 0.22, 1] | min }}{% endif %}"></span>
+                    {% else %}
+                        <span class="heatmap__cell {{ 'heatmap__cell--done' if day.completed }}"
+                              data-tooltip="{{ day.display_date }}{{ ' — done' if day.completed else '' }}"></span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+{% call modal('addHabitModal', 'New habit') %}
+<form method="POST" action="{{ url_for('habits.add_habit') }}">
+    <div class="field">
+        <label class="field__label" for="name">Habit name</label>
+        <input class="input" type="text" id="name" name="name" required
+               placeholder="e.g. Morning meditation">
+    </div>
+    <input type="hidden" name="active" value="true">
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Add habit</button>
+    </div>
+</form>
+{% endcall %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .score-card {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-5);
+        margin-bottom: var(--sp-5);
+    }
+    .score-card__value { font-size: var(--fs-2xl); color: var(--primary); line-height: 1; }
+    .score-card__value span { font-size: var(--fs-sm); color: var(--text-subtle); }
+    .score-card__detail { flex: 1; }
+    .score-card__label { font-weight: 600; margin: 0 0 var(--sp-1); }
+    .progress {
+        height: 8px;
+        background: var(--surface-alt);
+        border-radius: var(--r-full);
+        overflow: hidden;
+        margin-top: var(--sp-3);
+    }
+    .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+
+    .habit { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .habit__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .habit-list { margin-bottom: var(--sp-6); }
+    .heatmap-section { margin-top: var(--sp-6); }
+    .heatmap-section .heatmap { margin-top: var(--sp-4); }
+
+    @media (max-width: 480px) {
+        .score-card { flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', async (e) => {
+    const card = e.target.closest('.habit');
+    if (!card) return;
+    const id = card.dataset.id;
+
+    if (e.target.closest('[data-log]')) {
+        await api.post("{{ url_for('habits.log_habit') }}", { habit_id: id });
+        location.reload();
+    }
+
+    if (e.target.closest('[data-delete]')) {
+        const name = card.querySelector('.card__title').textContent.trim();
+        modal.confirm(`Delete habit "${name}"?`, async () => {
+            await api.post("{{ url_for('habits.delete_habit') }}", { habit_id: id });
+            card.remove();
+        });
+    }
+});
+</script>
+{% endblock %}

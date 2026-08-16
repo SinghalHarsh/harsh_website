@@ -1,0 +1,135 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
+
+{% block title %}Goals{% endblock %}
+
+{% block content %}
+{% call page_header('My Goals', 'Track your progress.') %}
+    <button class="btn btn--primary" data-modal-open="addGoalModal">
+        <i class="fa-solid fa-plus"></i> New goal
+    </button>
+{% endcall %}
+
+{% if active_goals %}
+<div class="grid grid--2">
+    {% for goal in active_goals %}
+    <article class="card card--interactive goal" data-id="{{ goal._id }}">
+        <h3 class="card__title" data-goal-title>{{ goal.title }}</h3>
+        <div class="row row--between goal__footer">
+            <span class="card__meta">
+                <i class="fa-regular fa-clock"></i>
+                {{ goal.created_at.strftime('%d %b %Y') if goal.created_at else '' }}
+            </span>
+            <span class="row">
+                <button class="btn btn--icon" data-edit aria-label="Edit goal" data-tooltip="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn--icon is-success" data-complete
+                        aria-label="Complete goal" data-tooltip="Mark complete">
+                    <i class="fa-regular fa-circle-check"></i>
+                </button>
+                <button class="btn btn--icon is-danger" data-delete
+                        aria-label="Delete goal" data-tooltip="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </span>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No active goals. Set your first one.', 'fa-solid fa-bullseye') }}
+{% endif %}
+
+{% if completed_goals %}
+<h2 class="card__title section-heading">Completed</h2>
+<div class="grid grid--2">
+    {% for goal in completed_goals %}
+    <article class="card goal goal--done">
+        <h3 class="card__title">{{ goal.title }}</h3>
+        <span class="badge badge--success">
+            <i class="fa-solid fa-check"></i>
+            {{ goal.completed_at.strftime('%d %b %Y') if goal.completed_at else 'Done' }}
+        </span>
+    </article>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% call modal('addGoalModal', 'New goal') %}
+<form method="POST" action="{{ url_for('goals.add_goal') }}">
+    <div class="field">
+        <label class="field__label" for="title">Goal</label>
+        <input class="input" type="text" id="title" name="title" required
+               placeholder="What do you want to achieve?">
+    </div>
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Add goal</button>
+    </div>
+</form>
+{% endcall %}
+
+{% call modal('editGoalModal', 'Edit goal') %}
+<form id="editGoalForm">
+    <input type="hidden" id="editGoalId">
+    <div class="field">
+        <label class="field__label" for="editGoalTitle">Goal</label>
+        <input class="input" type="text" id="editGoalTitle" required>
+    </div>
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Update</button>
+    </div>
+</form>
+{% endcall %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .goal { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .goal__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .goal--done { opacity: 0.7; }
+    .goal--done .card__title { text-decoration: line-through; color: var(--text-muted); }
+    .section-heading { margin: var(--sp-6) 0 var(--sp-4); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', async (e) => {
+    const card = e.target.closest('.goal');
+    if (!card || !card.dataset.id) return;
+    const id = card.dataset.id;
+
+    if (e.target.closest('[data-edit]')) {
+        document.getElementById('editGoalId').value = id;
+        document.getElementById('editGoalTitle').value =
+            card.querySelector('[data-goal-title]').textContent.trim();
+        modal.open('editGoalModal');
+    }
+
+    if (e.target.closest('[data-complete]')) {
+        await api.post("{{ url_for('goals.complete_goal') }}", { goal_id: id });
+        location.reload();
+    }
+
+    if (e.target.closest('[data-delete]')) {
+        modal.confirm('Delete this goal?', async () => {
+            await api.post("{{ url_for('goals.delete_goal') }}", { goal_id: id });
+            card.remove();
+        });
+    }
+});
+
+document.getElementById('editGoalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await api.post("{{ url_for('goals.edit_goal') }}", {
+        goal_id: document.getElementById('editGoalId').value,
+        title: document.getElementById('editGoalTitle').value,
+    });
+    modal.close('editGoalModal');
+    location.reload();
+});
+</script>
+{% endblock %}

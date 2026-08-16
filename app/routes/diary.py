@@ -8,7 +8,7 @@ diary_bp = Blueprint('diary', __name__)
 @diary_bp.route('/diary')
 def diary():
     entries = list(db.diary.find().sort('created_at', -1))
-    return render_template('diary.html', entries=entries)
+    return render_template('pages/diary.html', entries=entries)
 
 @diary_bp.route('/diary/save', methods=['POST'])
 def save_entry():

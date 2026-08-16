@@ -4,11 +4,12 @@ import calendar
 from datetime import datetime
 
 
-def build_year(year, today, day_payload):
+def build_year(year, today, day_payload, future_payload=None):
     """Return 12 months of day cells.
 
-    `day_payload(date_str, date_obj)` supplies the per-day fields; future
-    days are marked and skipped without calling it. Leading `None` entries
+    `day_payload(date_str, date_obj)` supplies the per-day fields. Future days
+    are flagged and instead take `future_payload` (a dict of neutral defaults),
+    so templates can read the same keys for every cell. Leading `None` entries
     pad each month to its first weekday.
     """
     months = []
@@ -26,6 +27,7 @@ def build_year(year, today, day_payload):
             }
             if date_obj.date() > today.date():
                 cell['future'] = True
+                cell.update(future_payload or {})
             else:
                 cell.update(day_payload(date_str, date_obj))
             days.append(cell)

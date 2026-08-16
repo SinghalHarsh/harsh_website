@@ -4,4 +4,4 @@ pranayama_bp = Blueprint('pranayama', __name__)
 
 @pranayama_bp.route('/pranayama')
 def pranayama():
-    return render_template('pranayama.html')
+    return render_template('pages/pranayama.html')
