@@ -65,6 +65,8 @@
     }
     .diary-table-wrapper {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
         background: var(--surface);
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -73,6 +75,7 @@
     }
     .diary-table {
         width: 100%;
+        min-width: 720px; /* scroll inside the wrapper instead of stretching it */
         border-collapse: collapse;
         font-size: 0.85rem;
     }

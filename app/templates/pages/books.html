@@ -142,7 +142,14 @@
 {% block styles %}
 <style>
     .book { display: flex; flex-direction: column; gap: var(--sp-4); }
-    .book__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .book .card__title {
+        font-size: var(--fs-md);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .book__footer { margin-top: auto; border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
     .book__pages { margin-top: var(--sp-2); }
     .progress { height: 6px; background: var(--surface-alt); border-radius: var(--r-full); overflow: hidden; }
     .progress__bar { height: 100%; background: var(--primary); }

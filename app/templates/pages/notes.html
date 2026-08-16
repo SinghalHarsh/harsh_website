@@ -78,8 +78,18 @@
 {% block styles %}
 <style>
     .note { display: flex; flex-direction: column; gap: var(--sp-4); }
-    .note__body { white-space: pre-wrap; word-break: break-word; margin: 0; flex: 1; }
-    .note__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .note__body {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        flex: 1;
+        /* Long notes are clamped in the grid; the full text is in the editor */
+        display: -webkit-box;
+        -webkit-line-clamp: 8;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .note__footer { margin-top: auto; border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
 </style>
 {% endblock %}
 

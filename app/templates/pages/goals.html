@@ -88,9 +88,15 @@
 {% block styles %}
 <style>
     .goal { display: flex; flex-direction: column; gap: var(--sp-4); }
-    .goal__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
-    .goal--done { opacity: 0.7; }
-    .goal--done .card__title { text-decoration: line-through; color: var(--text-muted); }
+    .goal__footer { margin-top: auto; border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .goal--done {
+        opacity: 0.7;
+        align-self: start; /* completed cards hug their content */
+        gap: var(--sp-3);
+        padding: var(--sp-4) var(--sp-5);
+    }
+    .goal--done .card__title { text-decoration: line-through; color: var(--text-muted); font-size: var(--fs-md); }
+    .goal--done .badge { align-self: flex-start; }
     .section-heading { margin: var(--sp-6) 0 var(--sp-4); }
 </style>
 {% endblock %}

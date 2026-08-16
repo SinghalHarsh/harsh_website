@@ -49,7 +49,13 @@
 {% block styles %}
 <style>
     .quote-card { max-width: 640px; margin: 0 auto; text-align: center; }
-    .quote-card img { border-radius: var(--r-md); margin: 0 auto; }
+    .quote-card img {
+        border-radius: var(--r-md);
+        margin: 0 auto;
+        max-height: 70vh;
+        width: auto;
+        object-fit: contain;
+    }
     .quote-card blockquote {
         margin: 0;
         font-size: var(--fs-lg);

@@ -128,6 +128,11 @@
     color: var(--text);
     margin: 0 0 var(--sp-2);
 }
+
+/* Pasted URLs are long and unbroken; keep them inside their card */
+.card, .card__title, .card__meta, .chip, .list__item, .row-list__item {
+    overflow-wrap: anywhere;
+}
 .card__meta {
     font-size: var(--fs-xs);
     color: var(--text-subtle);
