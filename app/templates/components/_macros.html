@@ -1,0 +1,52 @@
+{# Shared building blocks. Pages compose these instead of hand-rolling markup. #}
+
+{% macro page_header(title, subtitle='') %}
+<div class="page-header">
+    <div>
+        <h1>{{ title }}</h1>
+        {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if caller %}<div class="page-header__actions">{{ caller() }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro empty_state(message, icon='fa-solid fa-inbox') %}
+<div class="empty">
+    <i class="{{ icon }}"></i>
+    <p>{{ message }}</p>
+</div>
+{% endmacro %}
+
+
+{% macro modal(id, title, max_width='480px') %}
+<div class="modal-overlay" id="{{ id }}" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width: {{ max_width }};">
+        <div class="modal__header">
+            <h3 class="modal__title">{{ title }}</h3>
+            <button class="btn btn--icon" data-modal-close aria-label="Close">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro field(label, name, type='text', value='', required=False, placeholder='') %}
+<div class="field">
+    <label class="field__label" for="{{ name }}">{{ label }}</label>
+    <input class="input" type="{{ type }}" id="{{ name }}" name="{{ name }}"
+           value="{{ value }}" placeholder="{{ placeholder }}"
+           {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+
+{% macro icon_button(icon, label, variant='', attrs='') %}
+<button class="btn btn--icon {{ variant }}" aria-label="{{ label }}"
+        data-tooltip="{{ label }}" {{ attrs | safe }}>
+    <i class="{{ icon }}"></i>
+</button>
+{% endmacro %}

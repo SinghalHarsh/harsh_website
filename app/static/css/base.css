@@ -1,0 +1,158 @@
+/* Reset, layout shell and navigation. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: var(--fs-md);
+    color: var(--text);
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3, h4, p, figure { margin: 0; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--primary); }
+button { font: inherit; }
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+    height: var(--topbar-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-5);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.topbar__logo {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+}
+.topbar__logo img { width: 30px; height: 30px; border-radius: var(--r-full); }
+.topbar__links { display: flex; align-items: center; gap: var(--sp-4); }
+.topbar__links a {
+    color: var(--text-muted);
+    font-size: var(--fs-lg);
+    transition: color var(--transition);
+    display: inline-flex;
+    align-items: center;
+}
+.topbar__links a:hover { color: var(--primary); }
+
+/* ---------- Shell ---------- */
+
+.shell {
+    display: flex;
+    min-height: calc(100vh - var(--topbar-h));
+}
+
+.sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: var(--sp-4) 0;
+}
+.sidebar ul { list-style: none; margin: 0; padding: 0; }
+.sidebar a {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-5);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: var(--fs-sm);
+    border-left: 3px solid transparent;
+    transition: background var(--transition), color var(--transition);
+}
+.sidebar a:hover { background: var(--surface-alt); color: var(--text); }
+.sidebar a.active {
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-left-color: var(--primary);
+    font-weight: 500;
+}
+.sidebar a i { width: 18px; text-align: center; }
+
+.content {
+    flex: 1;
+    padding: var(--sp-5);
+    min-width: 0; /* let children scroll instead of stretching the shell */
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 900px) {
+    :root { --sidebar-w: 180px; }
+    .content { padding: var(--sp-4); }
+}
+
+/* ---------- Phone ---------- */
+
+@media (max-width: 768px) {
+    .shell { flex-direction: column; }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 0;
+        position: sticky;
+        top: var(--topbar-h);
+        z-index: 50;
+    }
+    .sidebar ul {
+        display: flex;
+        overflow-x: auto;
+        gap: var(--sp-2);
+        padding: var(--sp-2) var(--sp-3);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .sidebar ul::-webkit-scrollbar { display: none; }
+    .sidebar li { flex: 0 0 auto; }
+    .sidebar a {
+        flex-direction: column;
+        gap: var(--sp-1);
+        min-width: 72px;
+        min-height: var(--tap-min);
+        padding: var(--sp-2);
+        border-left: none;
+        border-radius: var(--r-sm);
+        font-size: var(--fs-xs);
+        text-align: center;
+    }
+    .sidebar a.active { border-left: none; }
+    .sidebar a i { font-size: var(--fs-lg); }
+
+    .topbar { padding: 0 var(--sp-3); }
+    .topbar__logo span { display: none; }
+    .topbar__links { gap: var(--sp-3); }
+
+    .content { padding: var(--sp-3); }
+    .page-header h1 { font-size: var(--fs-xl); }
+    .grid { gap: var(--sp-3); }
+    .card { padding: var(--sp-4); }
+    .modal { max-width: 100%; padding: var(--sp-4); }
+    .modal__actions { flex-direction: column-reverse; }
+    .modal__actions .btn { width: 100%; }
+}
+
+/* ---------- Small phone ---------- */
+
+@media (max-width: 480px) {
+    .grid--2, .grid--3 { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .page-header__actions .btn { flex: 1; }
+    .content { padding: var(--sp-3) var(--sp-2); }
+}

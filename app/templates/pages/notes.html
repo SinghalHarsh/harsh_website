@@ -1,0 +1,117 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
+
+{% block title %}Notes{% endblock %}
+
+{% block content %}
+{% call page_header('Notes', 'Capture your thoughts.') %}
+    <button class="btn btn--primary" data-modal-open="addNoteModal">
+        <i class="fa-solid fa-plus"></i> New note
+    </button>
+{% endcall %}
+
+{% if notes %}
+<div class="grid grid--2">
+    {% for note in notes %}
+    <article class="card card--interactive note" data-id="{{ note._id }}">
+        <p class="note__body" data-note-content>{{ note.content }}</p>
+        <div class="row row--between note__footer">
+            <span class="card__meta">
+                <i class="fa-regular fa-clock"></i>
+                {{ note.created_at.strftime('%d %b %Y') if note.created_at else '' }}
+                {% if note.updated_at %}<em>· edited</em>{% endif %}
+            </span>
+            <span class="row">
+                <button class="btn btn--icon" data-edit aria-label="Edit note"
+                        data-tooltip="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                {% if note.deletable %}
+                <button class="btn btn--icon is-danger" data-delete aria-label="Delete note"
+                        data-tooltip="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+                {% else %}
+                <button class="btn btn--icon" disabled aria-label="Deletion window passed"
+                        data-tooltip="Older than {{ delete_window_days }} days">
+                    <i class="fa-solid fa-lock"></i>
+                </button>
+                {% endif %}
+            </span>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No notes yet. Capture your first thought.', 'fa-solid fa-sticky-note') }}
+{% endif %}
+
+{% call modal('addNoteModal', 'New note') %}
+<form method="POST" action="{{ url_for('notes.notes') }}">
+    <div class="field">
+        <label class="field__label" for="content">Note</label>
+        <textarea class="textarea" id="content" name="content" rows="6"
+                  placeholder="What's on your mind?" required></textarea>
+    </div>
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save</button>
+    </div>
+</form>
+{% endcall %}
+
+{% call modal('editNoteModal', 'Edit note') %}
+<form id="editNoteForm">
+    <input type="hidden" name="note_id" id="editNoteId">
+    <div class="field">
+        <label class="field__label" for="editNoteContent">Note</label>
+        <textarea class="textarea" id="editNoteContent" name="content" rows="6" required></textarea>
+    </div>
+    <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Update</button>
+    </div>
+</form>
+{% endcall %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .note { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .note__body { white-space: pre-wrap; word-break: break-word; margin: 0; flex: 1; }
+    .note__footer { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', (e) => {
+    const card = e.target.closest('.note');
+    if (!card) return;
+
+    if (e.target.closest('[data-edit]')) {
+        document.getElementById('editNoteId').value = card.dataset.id;
+        document.getElementById('editNoteContent').value =
+            card.querySelector('[data-note-content]').textContent.trim();
+        modal.open('editNoteModal');
+    }
+
+    if (e.target.closest('[data-delete]')) {
+        modal.confirm('Delete this note?', async () => {
+            await api.post(`/notes/delete/${card.dataset.id}`);
+            card.remove();
+        });
+    }
+});
+
+document.getElementById('editNoteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editNoteId').value;
+    const content = document.getElementById('editNoteContent').value;
+
+    await api.post("{{ url_for('notes.edit_note') }}", { note_id: id, content });
+    modal.close('editNoteModal');
+    location.reload();
+});
+</script>
+{% endblock %}

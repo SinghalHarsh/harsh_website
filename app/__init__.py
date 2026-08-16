@@ -28,8 +28,14 @@ def create_app(config_class=Config):
         module = import_module(f"app.routes.{name}")
         app.register_blueprint(getattr(module, f"{name}_bp"))
 
+    from app.navigation import NAV_ITEMS, SOCIAL_LINKS
+
     @app.context_processor
     def inject_globals():
-        return {"site_name": config_class.SITE_NAME}
+        return {
+            "site_name": config_class.SITE_NAME,
+            "nav_items": NAV_ITEMS,
+            "social_links": SOCIAL_LINKS,
+        }
 
     return app
