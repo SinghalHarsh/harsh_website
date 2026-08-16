@@ -5,10 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anulom Vilom Pranayama</title>
 <style>
+  /* Standalone fullscreen page: it deliberately opts out of the site shell,
+     so it carries its own dark palette rather than the global tokens. */
+  :root {
+    --pr-bg: #0f172a;
+    --pr-surface: #1e293b;
+    --pr-line: #334155;
+    --pr-text: #e2e8f0;
+    --pr-muted: #64748b;
+    --pr-dim: #94a3b8;
+    --pr-accent: #7c3aed;
+    --pr-accent-hover: #6d28d9;
+    --pr-accent-soft: #a78bfa;
+    --pr-inhale: #60a5fa;
+    --pr-inhale-bg: #1e3a5f;
+    --pr-hold: #fbbf24;
+    --pr-hold-bg: #78350f;
+    --pr-exhale: #4ade80;
+    --pr-exhale-bg: #166534;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0f172a;
-    color: #e2e8f0;
+    background: var(--pr-bg);
+    color: var(--pr-text);
     font-family: 'Segoe UI', system-ui, sans-serif;
     height: 100vh;
     display: flex;
@@ -18,12 +37,12 @@
 
   .progress-bar {
     position: fixed; top: 0; left: 0; height: 4px;
-    background: #7c3aed; transition: width 0.3s; z-index: 100;
+    background: var(--pr-accent); transition: width 0.3s; z-index: 100;
   }
 
   .round-info {
     position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
-    font-size: 0.85rem; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;
+    font-size: 0.85rem; color: var(--pr-muted); letter-spacing: 0.1em; text-transform: uppercase;
   }
 
   .list {
@@ -43,7 +62,7 @@
     padding: 10px 24px;
     font-size: 1.1rem;
     font-weight: 300;
-    color: #94a3b8;
+    color: var(--pr-dim);
     transition: all 0.3s ease;
     border-left: 4px solid transparent;
     min-height: 48px;
@@ -51,9 +70,9 @@
   }
 
   .row.active {
-    color: #ffffff;
+    color: var(--pr-text);
     background: linear-gradient(90deg, rgba(124, 58, 237, 0.3), rgba(124, 58, 237, 0.05));
-    border-left: 6px solid #a78bfa;
+    border-left: 6px solid var(--pr-accent-soft);
     border-radius: 0 8px 8px 0;
     font-weight: 700;
     opacity: 1;
@@ -82,32 +101,32 @@
     flex-shrink: 0;
     opacity: 0.5;
   }
-  .phase.inhale { background: #166534; color: #4ade80; }
-  .phase.hold   { background: #78350f; color: #fbbf24; }
-  .phase.exhale { background: #1e3a5f; color: #60a5fa; }
-  .phase.speak  { background: #3b0764; color: #c4b5fd; }
+  .phase.inhale { background: var(--pr-inhale-bg); color: var(--pr-inhale); }
+  .phase.hold   { background: var(--pr-hold-bg); color: var(--pr-hold); }
+  .phase.exhale { background: var(--pr-exhale-bg); color: var(--pr-exhale); }
+  .phase.speak  { background: var(--pr-accent-hover); color: var(--pr-accent-soft); }
 
   .label { flex: 1; }
-  .row.active .label.inhale { color: #86efac; }
-  .row.active .label.hold   { color: #fde68a; }
-  .row.active .label.exhale { color: #93c5fd; }
-  .row.active .label.speak  { color: #c4b5fd; }
+  .row.active .label.inhale { color: var(--pr-inhale); }
+  .row.active .label.hold   { color: var(--pr-hold); }
+  .row.active .label.exhale { color: var(--pr-exhale); }
+  .row.active .label.speak  { color: var(--pr-accent-soft); }
 
   /* Start screen */
   .start-screen {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 28px;
   }
-  .start-screen h1 { font-size: 2.5rem; font-weight: 200; color: #c4b5fd; }
+  .start-screen h1 { font-size: 2.5rem; font-weight: 200; color: var(--pr-accent-soft); }
 
   .settings {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px 32px;
-    background: #1e293b;
+    background: var(--pr-surface);
     padding: 28px 36px;
     border-radius: 16px;
-    border: 1px solid #334155;
+    border: 1px solid var(--pr-line);
     max-width: 440px;
     width: 100%;
   }
@@ -119,16 +138,16 @@
   .setting.full { grid-column: 1 / -1; }
   .setting label {
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: var(--pr-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 600;
   }
   .setting input[type="number"] {
-    background: #0f172a;
-    border: 1px solid #475569;
+    background: var(--pr-bg);
+    border: 1px solid var(--pr-line);
     border-radius: 8px;
-    color: #e2e8f0;
+    color: var(--pr-text);
     font-size: 1.4rem;
     font-weight: 600;
     padding: 8px 12px;
@@ -136,48 +155,48 @@
     text-align: center;
     outline: none;
   }
-  .setting input[type="number"]:focus { border-color: #7c3aed; }
-  .setting input.inhale { color: #4ade80; }
-  .setting input.hold   { color: #fbbf24; }
-  .setting input.exhale { color: #60a5fa; }
-  .setting input.rounds { color: #c4b5fd; }
+  .setting input[type="number"]:focus { border-color: var(--pr-accent); }
+  .setting input.inhale { color: var(--pr-inhale); }
+  .setting input.hold   { color: var(--pr-hold); }
+  .setting input.exhale { color: var(--pr-exhale); }
+  .setting input.rounds { color: var(--pr-accent-soft); }
 
   .summary {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--pr-muted);
     text-align: center;
     line-height: 1.6;
   }
 
-  .btn {
-    background: #7c3aed; color: #fff; border: none;
+  .pr-btn {
+    background: var(--pr-accent); color: #fff; border: none;
     padding: 16px 48px; font-size: 1.2rem; border-radius: 12px; cursor: pointer;
   }
-  .btn:hover { background: #6d28d9; }
+  .pr-btn:hover { background: var(--pr-accent-hover); }
 
   .countdown-overlay {
     position: fixed; inset: 0;
-    background: #0f172a;
+    background: var(--pr-bg);
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 16px;
     z-index: 200;
   }
   .countdown-overlay .number {
-    font-size: 8rem; font-weight: 200; color: #a78bfa;
+    font-size: 8rem; font-weight: 200; color: var(--pr-accent-soft);
   }
   .countdown-overlay .sub {
-    font-size: 1.2rem; color: #64748b;
+    font-size: 1.2rem; color: var(--pr-muted);
   }
 
   .controls {
     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px;
   }
-  .ctrl-btn {
-    background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+  .pr-ctrl {
+    background: var(--pr-surface); color: var(--pr-dim); border: 1px solid var(--pr-line);
     padding: 8px 28px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;
   }
-  .ctrl-btn:hover { background: #334155; }
+  .pr-ctrl:hover { background: var(--pr-line); }
 
   .hidden { display: none; }
 
@@ -218,13 +237,13 @@
 
   <div class="summary" id="summary">10 rounds &bull; ~5 min 20 sec</div>
 
-  <button class="btn" onclick="startSession()">Start</button>
+  <button class="pr-btn" onclick="startSession()">Start</button>
 </div>
 
 <div id="session" class="list hidden"></div>
 <div class="controls hidden" id="controls">
-  <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">Pause (Space)</button>
-  <button class="ctrl-btn" onclick="skipStep()">Skip (→)</button>
+  <button class="pr-ctrl" id="pauseBtn" onclick="togglePause()">Pause (Space)</button>
+  <button class="pr-ctrl" onclick="skipStep()">Skip (→)</button>
 </div>
 
 <script>
@@ -376,8 +395,8 @@ function setActive(i) {
     rows[i].style.opacity = '1';
     rows[i].style.background = 'linear-gradient(90deg, rgba(124,58,237,0.35), rgba(124,58,237,0.05))';
     rows[i].style.fontWeight = '700';
-    rows[i].style.borderLeft = '6px solid #a78bfa';
-    rows[i].style.color = '#ffffff';
+    rows[i].style.borderLeft = '6px solid var(--pr-accent-soft)';
+    rows[i].style.color = 'var(--pr-text)';
   }
 }
 

@@ -11,21 +11,21 @@
         padding: 20px;
     }
     .diary-intro {
-        background: linear-gradient(135deg, #fdf6e3, #fff8ef);
-        border: 1px solid #f0e0c0;
+        background: linear-gradient(135deg, var(--accent-warm-bg), var(--accent-warm-bg-alt));
+        border: 1px solid var(--accent-warm-border);
         border-radius: 16px;
         padding: 30px;
         margin-bottom: 30px;
         line-height: 1.8;
-        color: #5a4a3a;
+        color: var(--accent-warm-text);
     }
     .diary-intro h2 {
-        color: #b8860b;
+        color: var(--accent-warm);
         margin-bottom: 5px;
         font-size: 1.4rem;
     }
     .diary-intro .author {
-        color: #a0896a;
+        color: var(--accent-warm-muted);
         font-style: italic;
         margin-bottom: 20px;
         font-size: 0.95rem;
@@ -40,35 +40,35 @@
         align-items: center;
         flex-wrap: wrap;
         margin-bottom: 25px;
-        background: #fff;
+        background: var(--surface);
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
+        border: 1px solid var(--border-soft);
     }
     .diary-controls label {
         font-weight: 600;
-        color: #4a5568;
+        color: var(--text);
         font-size: 0.9rem;
     }
     .diary-controls input, .diary-controls select {
         padding: 8px 14px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         border-radius: 8px;
         font-family: inherit;
         font-size: 0.9rem;
         outline: none;
     }
     .diary-controls input:focus, .diary-controls select:focus {
-        border-color: #b8860b;
+        border-color: var(--accent-warm);
         box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
     }
     .diary-table-wrapper {
         overflow-x: auto;
-        background: #fff;
+        background: var(--surface);
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
+        border: 1px solid var(--border-soft);
         margin-bottom: 30px;
     }
     .diary-table {
@@ -77,12 +77,12 @@
         font-size: 0.85rem;
     }
     .diary-table th {
-        background: #fdf6e3;
-        color: #b8860b;
+        background: var(--accent-warm-bg);
+        color: var(--accent-warm);
         font-weight: 600;
         padding: 12px 8px;
         text-align: center;
-        border-bottom: 2px solid #f0e0c0;
+        border-bottom: 2px solid var(--accent-warm-border);
         white-space: nowrap;
         position: sticky;
         top: 0;
@@ -94,25 +94,25 @@
     }
     .diary-table td {
         padding: 8px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--border-soft);
         text-align: center;
         vertical-align: middle;
     }
     .diary-table td:first-child {
         text-align: left;
         padding-left: 16px;
-        color: #4a5568;
+        color: var(--text);
         font-weight: 500;
     }
     .diary-table tr:hover {
-        background: #fdf6e3;
+        background: var(--accent-warm-bg);
     }
     .diary-table input[type="text"],
     .diary-table input[type="time"],
     .diary-table select {
         width: 90px;
         padding: 6px 8px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         border-radius: 6px;
         text-align: center;
         font-family: inherit;
@@ -123,11 +123,11 @@
     .diary-table input[type="text"]:focus,
     .diary-table input[type="time"]:focus,
     .diary-table select:focus {
-        border-color: #b8860b;
+        border-color: var(--accent-warm);
         box-shadow: 0 0 0 2px rgba(184,134,11,0.1);
     }
     .diary-table .total-col {
-        background: #f7fafc;
+        background: var(--surface-alt);
         font-weight: 600;
     }
     .diary-table .total-col input,
@@ -141,25 +141,25 @@
     .diary-table .date-header .day-name {
         display: block;
         font-weight: 400;
-        color: #a08050;
+        color: var(--accent-warm-muted);
         font-size: 0.7rem;
     }
     .diary-table .date-header.today {
-        background: #b8860b;
-        color: #fff;
+        background: var(--accent-warm);
+        color: var(--surface);
         border-radius: 4px;
     }
     .diary-table .date-header.today .day-name {
-        color: #fde8b0;
+        color: var(--accent-warm-border);
     }
     .diary-table td.today-col {
         background: rgba(184,134,11,0.06);
     }
     .diary-table tr.total-row td {
-        background: #fdf6e3;
+        background: var(--accent-warm-bg);
         font-weight: 600;
-        border-top: 2px solid #f0e0c0;
-        color: #b8860b;
+        border-top: 2px solid var(--accent-warm-border);
+        color: var(--accent-warm);
     }
     .diary-actions {
         display: flex;
@@ -167,8 +167,8 @@
         margin-bottom: 30px;
     }
     .btn-save {
-        background: linear-gradient(135deg, #b8860b, #d4a017);
-        color: #fff;
+        background: linear-gradient(135deg, var(--accent-warm), var(--accent-warm));
+        color: var(--surface);
         border: none;
         padding: 10px 28px;
         border-radius: 20px;
@@ -183,9 +183,9 @@
         box-shadow: 0 4px 12px rgba(184,134,11,0.3);
     }
     .btn-delete-diary {
-        background: #fff;
-        color: #e53e3e;
-        border: 1px solid #e53e3e;
+        background: var(--surface);
+        color: var(--danger);
+        border: 1px solid var(--danger);
         padding: 10px 28px;
         border-radius: 20px;
         font-weight: 600;
@@ -195,12 +195,12 @@
         transition: all 0.2s;
     }
     .btn-delete-diary:hover {
-        background: #fff5f5;
+        background: var(--danger-soft);
     }
     .btn-csv {
-        background: #fff;
-        color: #38a169;
-        border: 1px solid #38a169;
+        background: var(--surface);
+        color: var(--success);
+        border: 1px solid var(--success);
         padding: 10px 28px;
         border-radius: 20px;
         font-weight: 600;
@@ -210,7 +210,7 @@
         transition: all 0.2s;
     }
     .btn-csv:hover {
-        background: #f0fff4;
+        background: var(--success-soft);
     }
     .reference-section {
         display: grid;
@@ -219,20 +219,20 @@
         margin-top: 10px;
     }
     .reference-card {
-        background: #fff;
+        background: var(--surface);
         border-radius: 12px;
         padding: 24px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
+        border: 1px solid var(--border-soft);
     }
     .reference-card h3 {
-        color: #b8860b;
+        color: var(--accent-warm);
         margin-bottom: 12px;
         font-size: 1.05rem;
     }
     .reference-card ol {
         padding-left: 20px;
-        color: #4a5568;
+        color: var(--text);
         line-height: 1.8;
     }
     .reference-card li {
@@ -240,7 +240,7 @@
         font-size: 0.9rem;
     }
     .reference-card li strong {
-        color: #2d3748;
+        color: var(--text);
     }
     .status-msg {
         padding: 8px 16px;
@@ -252,20 +252,20 @@
         gap: 6px;
     }
     .status-msg.success {
-        background: #f0fff4;
-        color: #38a169;
-        border: 1px solid #c6f6d5;
+        background: var(--success-soft);
+        color: var(--success);
+        border: 1px solid var(--success-soft);
     }
     .status-msg.error {
-        background: #fff5f5;
-        color: #e53e3e;
-        border: 1px solid #fed7d7;
+        background: var(--danger-soft);
+        color: var(--danger);
+        border: 1px solid var(--danger-soft);
     }
     .saved-entries {
         margin-bottom: 30px;
     }
     .saved-entries h3 {
-        color: #4a5568;
+        color: var(--text);
         margin-bottom: 12px;
         font-size: 1rem;
     }
@@ -275,9 +275,9 @@
         gap: 8px;
     }
     .entry-chip {
-        background: #fdf6e3;
-        border: 1px solid #f0e0c0;
-        color: #b8860b;
+        background: var(--accent-warm-bg);
+        border: 1px solid var(--accent-warm-border);
+        color: var(--accent-warm);
         padding: 6px 14px;
         border-radius: 20px;
         font-size: 0.8rem;
@@ -286,12 +286,12 @@
         transition: all 0.2s;
     }
     .entry-chip:hover {
-        background: #b8860b;
-        color: #fff;
+        background: var(--accent-warm);
+        color: var(--surface);
     }
     .section-divider {
         border: none;
-        border-top: 2px solid #f0e0c0;
+        border-top: 2px solid var(--accent-warm-border);
         margin: 30px 0;
     }
 </style>
@@ -335,7 +335,7 @@
             <option value="4">Week 4</option>
             <option value="5">Week 5</option>
         </select>
-        <button class="btn-save" onclick="loadCurrentEntry()"><i class="fa-solid fa-download"></i> Load</button>
+        <button class="btn btn--primary" onclick="loadCurrentEntry()"><i class="fa-solid fa-download"></i> Load</button>
         <span class="status-msg" id="statusMsg"></span>
     </div>
 
@@ -363,9 +363,9 @@
 
     <!-- Actions -->
     <div class="diary-actions">
-        <button class="btn-save" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk"></i> Save Entry</button>
-        <button class="btn-delete-diary" onclick="confirmDeleteEntry()"><i class="fa-solid fa-trash"></i> Delete Entry</button>
-        <button class="btn-csv" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Download CSV</button>
+        <button class="btn btn--primary" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk"></i> Save Entry</button>
+        <button class="btn btn--danger" onclick="confirmDeleteEntry()"><i class="fa-solid fa-trash"></i> Delete Entry</button>
+        <button class="btn btn--ghost" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Download CSV</button>
     </div>
 
     <hr class="section-divider">

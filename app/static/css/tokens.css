@@ -21,6 +21,14 @@
     --surface: #ffffff;
     --surface-alt: #f4f6f8;
 
+    /* Warm accent — the spiritual diary's deliberate parchment theme */
+    --accent-warm: #b8860b;
+    --accent-warm-text: #5a4a3a;
+    --accent-warm-muted: #a0896a;
+    --accent-warm-bg: #fdf6e3;
+    --accent-warm-bg-alt: #fff8ef;
+    --accent-warm-border: #f0e0c0;
+
     /* Text */
     --text: #333333;
     --text-muted: #666666;
@@ -86,6 +94,10 @@
     --success-soft: #16301f;
     --danger-soft: #351a1e;
     --warning-soft: #33280f;
+    --accent-warm-text: #e0d3bf;
+    --accent-warm-bg: #2a2317;
+    --accent-warm-bg-alt: #30281a;
+    --accent-warm-border: #453923;
 }
 
 @media (prefers-reduced-motion: reduce) {
