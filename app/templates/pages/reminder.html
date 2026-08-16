@@ -3,122 +3,145 @@
 
 {% block title %}Reminders{% endblock %}
 
-{% macro reminder_row(reminder, is_missed=False) %}
-<li class="list__item" data-id="{{ reminder._id }}" data-date="{{ reminder.date }}"
-    data-recurring="{{ 'yes' if reminder.recurrence else 'no' }}">
-    <span>
-        {{ reminder.title }}
-        {% if reminder.category %}<span class="badge badge--primary">{{ reminder.category }}</span>{% endif %}
-        {% if reminder.recurrence %}
-        <span class="badge"><i class="fa-solid fa-repeat"></i> {{ reminder.recurrence }}</span>
-        {% endif %}
-        {% if is_missed %}<span class="badge badge--danger">{{ reminder.date }}</span>{% endif %}
-    </span>
-    <span class="row">
-        <button class="btn btn--icon is-success" data-complete data-tooltip="Mark done"
-                aria-label="Complete {{ reminder.title }}">
-            <i class="fa-regular fa-circle-check"></i>
+{% macro reminder_card(r, missed=False) %}
+<div class="card reminder-card {{ 'reminder-card--missed' if missed }}"
+     data-id="{{ r.original_id or r._id }}" data-date="{{ r.date }}"
+     data-recurring="{{ 'yes' if r.recurrence else 'no' }}">
+    <div class="reminder-card__info">
+        <h3>{{ r.title }}</h3>
+        <div class="reminder-card__meta">
+            {% if missed %}<span class="reminder-card__date">{{ r.date }}</span>{% endif %}
+            {% if r.category %}<span class="badge badge--primary">{{ r.category }}</span>{% endif %}
+            {% if r.recurrence %}
+            <span class="badge"><i class="fa-solid fa-repeat"></i> {{ r.recurrence | title }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <button class="check-btn {{ 'is-done' if r.completed }}" data-complete
+                aria-label="Complete {{ r.title }}"
+                data-tooltip="{{ 'Completed' if r.completed else 'Mark done' }}">
+            <i class="fa-solid fa-check"></i>
         </button>
         <button class="btn btn--icon is-danger" data-delete data-tooltip="Delete"
-                aria-label="Delete {{ reminder.title }}">
+                aria-label="Delete {{ r.title }}">
             <i class="fa-solid fa-trash"></i>
         </button>
-    </span>
-</li>
+    </div>
+</div>
 {% endmacro %}
 
 {% block content %}
-{% call page_header('Reminders', today_date) %}
-    <button class="btn btn--primary" data-modal-open="addReminderModal">
-        <i class="fa-solid fa-plus"></i> New reminder
-    </button>
-{% endcall %}
+{{ page_header('Reminders', 'Never forget a task.') }}
 
-<div class="grid grid--2">
-    <section class="card">
-        <h2 class="card__title">Today</h2>
-        {% if todays_reminders %}
-        <ul class="list">{% for r in todays_reminders %}{{ reminder_row(r) }}{% endfor %}</ul>
-        {% else %}{{ empty_state('Nothing due today.', 'fa-solid fa-bell') }}{% endif %}
-    </section>
-
-    <section class="card">
-        <h2 class="card__title">Missed</h2>
-        {% if missed_reminders %}
-        <ul class="list">{% for r in missed_reminders %}{{ reminder_row(r, is_missed=True) }}{% endfor %}</ul>
-        {% else %}{{ empty_state('Nothing missed. Well done.', 'fa-solid fa-circle-check') }}{% endif %}
-    </section>
+<!-- 1. Today -->
+<div class="section-header">
+    <h2>Today's Reminders</h2>
+    <span class="section-header__meta">{{ today_date }}</span>
 </div>
 
-<section class="heatmap-section">
-    <div class="row row--between">
-        <h2 class="card__title">{{ selected_year }}</h2>
-        <div class="row">
-            <a class="btn btn--ghost btn--sm" href="{{ url_for('reminders.reminder', year=selected_year - 1) }}">
-                <i class="fa-solid fa-chevron-left"></i> {{ selected_year - 1 }}
-            </a>
-            <a class="btn btn--ghost btn--sm" href="{{ url_for('reminders.reminder', year=selected_year + 1) }}">
-                {{ selected_year + 1 }} <i class="fa-solid fa-chevron-right"></i>
-            </a>
+{% if todays_reminders %}
+<div class="reminder-grid">
+    {% for r in todays_reminders %}{{ reminder_card(r) }}{% endfor %}
+</div>
+{% else %}{{ empty_state('Nothing due today.', 'fa-solid fa-bell') }}{% endif %}
+
+<!-- 2. Missed -->
+{% if missed_reminders %}
+<div class="section-header">
+    <h2 class="section-header__danger">Missed Reminders</h2>
+</div>
+<div class="reminder-grid">
+    {% for r in missed_reminders %}{{ reminder_card(r, missed=True) }}{% endfor %}
+</div>
+{% endif %}
+
+<!-- 3. Yearly overview -->
+<div class="section-header">
+    <h2>Yearly Overview</h2>
+</div>
+
+<div class="panel">
+    <div class="panel__header">
+        <span class="year-nav__current">{{ selected_year }}</span>
+        <div class="year-nav">
+            <a href="{{ url_for('reminders.reminder', year=selected_year - 1) }}"
+               aria-label="Previous year"><i class="fa-solid fa-chevron-left"></i></a>
+            <span class="year-nav__current">{{ selected_year }}</span>
+            <a href="{{ url_for('reminders.reminder', year=selected_year + 1) }}"
+               aria-label="Next year"><i class="fa-solid fa-chevron-right"></i></a>
         </div>
     </div>
 
-    <div class="heatmap">
-        {% for month in months_data %}
-        <div class="heatmap__month">
-            <div class="heatmap__label">{{ month.name }}</div>
-            <div class="heatmap__grid">
-                {% for day in month.days %}
-                    {% if not day %}
-                        <span class="heatmap__cell heatmap__cell--empty"></span>
-                    {% elif day.future %}
-                        <span class="heatmap__cell heatmap__cell--future"></span>
-                    {% else %}
-                        <span class="heatmap__cell"
-                              data-tooltip="{{ day.display_date }}{% if day.count %} — {{ day.count }} reminder{{ 's' if day.count > 1 }}{% endif %}"
-                              style="{% if day.count %}background: var(--primary); opacity: {{ [0.35 + day.count * 0.25, 1] | min }}{% endif %}"></span>
-                    {% endif %}
-                {% endfor %}
+    <div class="heatmap-wrap">
+        <div class="heatmap-days">
+            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+        </div>
+        <div class="heatmap">
+            {% for month in months_data %}
+            <div class="heatmap__month">
+                <div class="heatmap__label">{{ month.name }}</div>
+                <div class="heatmap__grid">
+                    {% for day in month.days %}
+                        {% if not day %}
+                            <span class="heatmap__cell heatmap__cell--empty"></span>
+                        {% elif day.future %}
+                            <span class="heatmap__cell heatmap__cell--future"></span>
+                        {% else %}
+                            <span class="heatmap__cell {{ 'heatmap__cell--today' if day.date == today_iso }}"
+                                  data-tooltip="{{ day.display_date }}{% if day.count %}: {{ day.count }} reminder{{ 's' if day.count > 1 }}{% endif %}"
+                                  {% if day.count %}style="background: var(--primary); opacity: {{ [0.3 + day.count * 0.22, 1] | min }}"{% endif %}></span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-</section>
+</div>
 
-{% call modal('addReminderModal', 'New reminder') %}
-<form method="POST" action="{{ url_for('reminders.add_reminder') }}">
-    <div class="field">
-        <label class="field__label" for="title">Title</label>
-        <input class="input" type="text" id="title" name="title" required>
+<!-- 4. Add -->
+<div class="section-header">
+    <h2>Manage Reminders</h2>
+</div>
+
+<details class="manage">
+    <summary class="manage__header">
+        <h3>Add Reminder</h3>
+        <i class="fa-solid fa-chevron-down"></i>
+    </summary>
+    <div class="manage__body">
+        <form method="POST" action="{{ url_for('reminders.add_reminder') }}" class="add-grid">
+            <div class="field">
+                <label class="field__label" for="title">Title</label>
+                <input class="input" type="text" id="title" name="title" required>
+            </div>
+            <div class="field">
+                <label class="field__label" for="date">Date</label>
+                <input class="input" type="date" id="date" name="date" value="{{ today_iso }}" required>
+            </div>
+            <div class="field">
+                <label class="field__label" for="category">Category</label>
+                <select class="select" id="category" name="category">
+                    <option value="">None</option>
+                    <option value="Birthday">Birthday</option>
+                    <option value="Anniversary">Anniversary</option>
+                    <option value="Task">Task</option>
+                    <option value="Payment">Payment</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field__label" for="recurrence">Repeats</label>
+                <select class="select" id="recurrence" name="recurrence">
+                    <option value="">Once</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn--primary add-grid__submit">Add reminder</button>
+        </form>
     </div>
-    <div class="field">
-        <label class="field__label" for="date">Date</label>
-        <input class="input" type="date" id="date" name="date" value="{{ today_iso }}" required>
-    </div>
-    <div class="field">
-        <label class="field__label" for="category">Category</label>
-        <select class="select" id="category" name="category">
-            <option value="">None</option>
-            <option value="Birthday">Birthday</option>
-            <option value="Anniversary">Anniversary</option>
-            <option value="Task">Task</option>
-            <option value="Payment">Payment</option>
-        </select>
-    </div>
-    <div class="field">
-        <label class="field__label" for="recurrence">Repeats</label>
-        <select class="select" id="recurrence" name="recurrence">
-            <option value="">Once</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-        </select>
-    </div>
-    <div class="modal__actions">
-        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
-        <button type="submit" class="btn btn--primary">Add</button>
-    </div>
-</form>
-{% endcall %}
+</details>
 
 {% call modal('deleteScopeModal', 'Delete recurring reminder', '420px') %}
 <div class="modal__body">This reminder repeats. Delete only this date, or the whole series?</div>
@@ -132,20 +155,31 @@
 
 {% block styles %}
 <style>
-    .list { list-style: none; margin: 0; padding: 0; }
-    .list__item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--sp-3);
-        padding: var(--sp-3) 0;
-        border-bottom: 1px solid var(--border-soft);
-        flex-wrap: wrap;
+    .reminder-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: var(--sp-4);
     }
-    .list__item:last-child { border-bottom: none; }
-    .list__item.is-done { opacity: 0.45; text-decoration: line-through; }
-    .heatmap-section { margin-top: var(--sp-6); }
-    .heatmap-section .heatmap { margin-top: var(--sp-4); }
+    .reminder-card { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+    .reminder-card--missed { border-left: 4px solid var(--danger); }
+    .reminder-card__info h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+    .reminder-card__meta { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+    .reminder-card__date { font-size: var(--fs-xs); color: var(--danger); font-weight: 600; }
+    .reminder-card.is-done { opacity: 0.5; }
+    .section-header__danger { color: var(--danger); }
+
+    .add-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--sp-3) var(--sp-4);
+        align-items: end;
+    }
+    .add-grid .field { margin-bottom: 0; }
+    .add-grid__submit { align-self: end; }
+
+    @media (max-width: 480px) {
+        .add-grid { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
 
@@ -153,46 +187,41 @@
 <script>
 let pending = null;
 
-async function remove(id, mode, date) {
-    await api.post("{{ url_for('reminders.delete_reminder') }}", { id, mode, date });
-}
+const removeReminder = (id, mode, date) =>
+    api.post("{{ url_for('reminders.delete_reminder') }}", { id, mode, date });
 
 document.addEventListener('click', async (e) => {
-    const item = e.target.closest('.list__item');
-    if (!item) return;
-    const { id, date, recurring } = item.dataset;
+    const card = e.target.closest('.reminder-card');
+    if (!card) return;
+    const { id, date, recurring } = card.dataset;
 
     if (e.target.closest('[data-complete]')) {
         await api.post("{{ url_for('reminders.complete_reminder') }}", { id, date });
-        item.classList.add('is-done');
-        item.querySelectorAll('button').forEach((b) => (b.disabled = true));
+        card.classList.add('is-done');
+        card.querySelector('.check-btn').classList.add('is-done');
     }
 
     if (e.target.closest('[data-delete]')) {
         if (recurring === 'yes') {
-            pending = { id, date, item };
+            pending = { id, date, card };
             modal.open('deleteScopeModal');
         } else {
             modal.confirm('Delete this reminder?', async () => {
-                await remove(id, 'series', date);
-                item.remove();
+                await removeReminder(id, 'series', date);
+                card.remove();
             });
         }
     }
 });
 
-document.getElementById('deleteInstance').addEventListener('click', async () => {
-    if (!pending) return;
-    await remove(pending.id, 'instance', pending.date);
-    pending.item.remove();
-    modal.close('deleteScopeModal');
-});
-
-document.getElementById('deleteSeries').addEventListener('click', async () => {
-    if (!pending) return;
-    await remove(pending.id, 'series', pending.date);
-    pending.item.remove();
-    modal.close('deleteScopeModal');
-});
+for (const [btnId, mode] of [['deleteInstance', 'instance'], ['deleteSeries', 'series']]) {
+    document.getElementById(btnId).addEventListener('click', async () => {
+        if (!pending) return;
+        await removeReminder(pending.id, mode, pending.date);
+        pending.card.remove();
+        modal.close('deleteScopeModal');
+        pending = null;
+    });
+}
 </script>
 {% endblock %}
