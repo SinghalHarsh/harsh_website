@@ -8,24 +8,28 @@ books_bp = Blueprint('books', __name__)
 @books_bp.route('/books')
 def books():
     all_books = list(db.books.find())
-    
+
     currently_reading = [b for b in all_books if b.get('status') == 'reading']
-    to_read = [b for b in all_books if b.get('status') == 'to_read']
-    
-    # Filter completed books by current year
+    # Anything not explicitly reading or completed sits on the to-read shelf, so
+    # legacy documents without a status stay visible instead of vanishing.
+    to_read = [b for b in all_books if b.get('status') not in ('reading', 'completed')]
+
     current_year = datetime.now().year
     completed_books = []
     for b in all_books:
-        if b.get('status') == 'completed':
-            completion_date = b.get('completed_date')
-            # Assuming completed_date is stored as ISO string 'YYYY-MM-DD' or datetime
-            if completion_date:
-                if isinstance(completion_date, str) and completion_date.startswith(str(current_year)):
-                    completed_books.append(b)
-                elif isinstance(completion_date, datetime) and completion_date.year == current_year:
-                    completed_books.append(b)
+        if b.get('status') != 'completed':
+            continue
+        # Fall back to created_at so a completion without a recorded date is
+        # still shown rather than silently dropped from every shelf.
+        stamp = b.get('completed_date') or b.get('created_at')
+        if isinstance(stamp, datetime):
+            stamp = stamp.strftime('%Y-%m-%d')
+        if stamp and str(stamp).startswith(str(current_year)):
+            completed_books.append(b)
 
-    return render_template('pages/books.html', 
+    completed_books.sort(key=lambda b: str(b.get('completed_date') or ''), reverse=True)
+
+    return render_template('pages/books.html',
                            now=datetime.now(),
                            currently_reading=currently_reading,
                            to_read=to_read,
