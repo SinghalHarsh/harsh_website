@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from datetime import datetime
 from app.extensions import db
+from app.services import diary as diary_service
 from bson.objectid import ObjectId
 
 diary_bp = Blueprint('diary', __name__)
@@ -45,6 +46,14 @@ def load_entry():
     if entry:
         return jsonify({'answers': entry.get('answers', {}), 'found': True})
     return jsonify({'answers': {}, 'found': False})
+
+@diary_bp.route('/diary/metrics')
+def entry_metrics():
+    month = request.args.get('month', '')
+    week = request.args.get('week', '')
+    entry = db.diary.find_one({'month': month, 'week': week}) or {}
+    return jsonify(diary_service.week_score(entry.get('answers', {})))
+
 
 @diary_bp.route('/diary/delete', methods=['POST'])
 def delete_entry():

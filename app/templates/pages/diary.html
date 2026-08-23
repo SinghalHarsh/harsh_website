@@ -63,6 +63,56 @@
         border-color: var(--accent-warm);
         box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
     }
+    .sadhana {
+        background: var(--surface);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    .sadhana__head { display: flex; align-items: center; gap: 20px; }
+    .sadhana__score { display: flex; align-items: baseline; gap: 2px; }
+    .sadhana__value { font-size: 2rem; font-weight: 800; color: var(--accent-warm); line-height: 1; }
+    .sadhana__score small { color: var(--text-subtle); font-size: 0.85rem; }
+    .sadhana__detail { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .sadhana__detail strong { color: var(--text); }
+    .sadhana__blurb, .sadhana__meta { font-size: 0.85rem; color: var(--text-muted); }
+    .sadhana__bar {
+        height: 8px;
+        background: var(--surface-alt);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 4px 0;
+    }
+    .sadhana__fill { height: 100%; width: 0; background: var(--accent-warm); transition: width .3s; }
+    .sadhana__cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border-soft);
+    }
+    .sadhana__col-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--text-subtle);
+        margin-bottom: 8px;
+    }
+    .sadhana__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+    .sadhana__list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 0.88rem;
+        color: var(--text);
+    }
+    .sadhana__list span { color: var(--text-muted); flex-shrink: 0; }
+    @media (max-width: 600px) {
+        .sadhana__head { flex-direction: column; align-items: flex-start; gap: 12px; }
+    }
+
     .diary-table-wrapper {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -340,6 +390,31 @@
         </select>
         <button class="btn btn--primary" onclick="loadCurrentEntry()"><i class="fa-solid fa-download"></i> Load</button>
         <span class="status-msg" id="statusMsg"></span>
+    </div>
+
+    <!-- Sadhana Score -->
+    <div class="sadhana" id="sadhanaPanel" hidden>
+        <div class="sadhana__head">
+            <div class="sadhana__score">
+                <span class="sadhana__value" id="sadhanaValue">0</span><small>/100</small>
+            </div>
+            <div class="sadhana__detail">
+                <strong id="sadhanaTier">Not started</strong>
+                <span class="sadhana__blurb" id="sadhanaBlurb"></span>
+                <div class="sadhana__bar"><div class="sadhana__fill" id="sadhanaFill"></div></div>
+                <span class="sadhana__meta" id="sadhanaMeta"></span>
+            </div>
+        </div>
+        <div class="sadhana__cols">
+            <div>
+                <h4 class="sadhana__col-title">Strongest</h4>
+                <ul class="sadhana__list" id="sadhanaStrong"></ul>
+            </div>
+            <div>
+                <h4 class="sadhana__col-title">Needs attention</h4>
+                <ul class="sadhana__list" id="sadhanaWeak"></ul>
+            </div>
+        </div>
     </div>
 
     <!-- Diary Table -->
@@ -744,6 +819,36 @@ function gatherAnswers() {
     return answers;
 }
 
+function renderSadhana(m) {
+    const panel = document.getElementById('sadhanaPanel');
+    if (!m || !m.days_logged) { panel.hidden = true; return; }
+    panel.hidden = false;
+
+    document.getElementById('sadhanaValue').textContent = m.score;
+    document.getElementById('sadhanaTier').textContent = m.tier.name;
+    document.getElementById('sadhanaBlurb').textContent = m.tier.blurb;
+    document.getElementById('sadhanaFill').style.width = m.score + '%';
+
+    const bits = [m.days_logged + ' day' + (m.days_logged === 1 ? '' : 's') + ' logged'];
+    if (m.penalty) bits.push(m.penalty + ' pts lost to ' + m.distraction_hours + 'h distraction');
+    if (m.tier.next_at) bits.push((m.tier.next_at - m.score) + ' pts to ' + m.tier.next_at);
+    document.getElementById('sadhanaMeta').textContent = bits.join(' \u00b7 ');
+
+    const row = (b) => '<li>' + b.label + ' <span>' + b.percent + '%</span></li>';
+    document.getElementById('sadhanaStrong').innerHTML = m.strongest.map(row).join('');
+    document.getElementById('sadhanaWeak').innerHTML = m.weakest.map(row).join('');
+}
+
+function refreshSadhana() {
+    const month = document.getElementById('diaryMonth').value;
+    const week = document.getElementById('diaryWeek').value;
+    if (!month) return;
+    fetch(`/diary/metrics?month=${encodeURIComponent(month)}&week=${encodeURIComponent(week)}`)
+        .then(r => r.json())
+        .then(renderSadhana)
+        .catch(() => {});
+}
+
 function showStatus(msg, type) {
     const el = document.getElementById('statusMsg');
     el.textContent = msg;
@@ -765,6 +870,7 @@ function saveEntry() {
     .then(data => {
         if (data.success) {
             showStatus('Saved successfully!', 'success');
+            refreshSadhana();
             setTimeout(() => location.reload(), 1000);
         } else {
             showStatus(data.error || 'Save failed.', 'error');
@@ -782,6 +888,7 @@ function loadCurrentEntry() {
         .then(r => r.json())
         .then(data => {
             buildTable(data.answers);
+            refreshSadhana();
             if (data.found) showStatus('Entry loaded.', 'success');
             else showStatus('No saved entry — starting fresh.', 'success');
         })
