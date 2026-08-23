@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from datetime import datetime
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
 
 from app.extensions import db
 from app.services import habits as habit_service
@@ -11,6 +12,28 @@ habits_bp = Blueprint('habits', __name__)
 
 def _wants_json():
     return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+def _object_id(value):
+    """Parse a habit id, or None when it is missing or malformed.
+
+    ObjectId(None) mints a brand new id rather than failing, which would send
+    an update off to a document that does not exist, so empty input is
+    rejected before it gets there.
+    """
+    if not value:
+        return None
+    try:
+        return ObjectId(value)
+    except (InvalidId, TypeError):
+        return None
+
+
+def _int_field(value, default, low, high):
+    try:
+        return max(low, min(high, int(value)))
+    except (TypeError, ValueError):
+        return default
 
 
 @habits_bp.route('/habits')
@@ -24,6 +47,14 @@ def habits():
 
     active = [h for h in visible if h.get('active', True)]
 
+    # A habit left dead long enough drops off the board and reads as an idea
+    # again. This is presentation only: nothing is written, so reactivating one
+    # sticks and a stray GET cannot quietly retire it.
+    for habit in visible:
+        if habit.get('should_retire'):
+            habit['active'] = False
+    active = [h for h in active if not h.get('should_retire')]
+
     selected_name = request.args.get('habit')
     is_overall = not selected_name or selected_name == 'overall'
     selected = None
@@ -31,7 +62,7 @@ def habits():
         selected = next((h for h in active if h['name'] == selected_name), None)
         is_overall = selected is None
 
-    selected_year = int(request.args.get('year', today.year))
+    selected_year = _int_field(request.args.get('year'), today.year, 1970, 2999)
 
     if is_overall:
         def payload(date_str, _):
@@ -55,7 +86,9 @@ def habits():
             future_payload={'completed_count': 0} if is_overall else {'completed': False},
         ),
         selected_year=selected_year,
-        score=habit_service.daily_score(active, today),
+        # Charts read every tracked habit, so retiring one does not erase
+        # the history it contributed.
+        score=habit_service.metrics(visible, today, active=active),
         today_date=today.strftime('%A, %B %d, %Y'),
         today_iso=today.strftime('%Y-%m-%d'),
     )
@@ -69,6 +102,9 @@ def add_habit():
             'name': name,
             'color': request.form.get('color') or 'text-blue',
             'active': request.form.get('active') == 'true',
+            'credit_every': _int_field(request.form.get('credit_every'), 5, 0, 30),
+            'credit_amount': _int_field(request.form.get('credit_amount'), 1, 0, 7),
+            'rest_days': [],
             'created_at': datetime.now().strftime('%Y-%m-%d'),
             'history': [],
         })
@@ -80,40 +116,46 @@ def add_habit():
 
 @habits_bp.route('/habits/toggle', methods=['POST'])
 def toggle_habit():
-    habit_id = request.form.get('habit_id')
+    habit_id = _object_id(request.form.get('habit_id'))
+    if not habit_id:
+        return jsonify({'error': 'Invalid habit'}), 400
     is_active = request.form.get('active') == 'on'
 
-    db.habits.update_one({'_id': ObjectId(habit_id)}, {'$set': {'active': is_active}})
+    db.habits.update_one({'_id': habit_id}, {'$set': {'active': is_active}})
 
     if _wants_json():
-        return jsonify({'status': 'success', 'id': habit_id, 'active': is_active})
+        return jsonify({'status': 'success', 'id': str(habit_id), 'active': is_active})
     return redirect(url_for('habits.habits'))
 
 
 @habits_bp.route('/habits/delete', methods=['POST'])
 def delete_habit():
-    habit_id = request.form.get('habit_id')
-    if habit_id:
-        db.habits.update_one(
-            {'_id': ObjectId(habit_id)},
-            {'$set': {
-                'deleted': True,
-                'deleted_at': datetime.now().strftime('%Y-%m-%d'),
-                'active': False,
-            }},
-        )
+    habit_id = _object_id(request.form.get('habit_id'))
+    if not habit_id:
+        return jsonify({'error': 'Invalid habit'}), 400
+
+    db.habits.update_one(
+        {'_id': habit_id},
+        {'$set': {
+            'deleted': True,
+            'deleted_at': datetime.now().strftime('%Y-%m-%d'),
+            'active': False,
+        }},
+    )
 
     if _wants_json():
-        return jsonify({'status': 'success', 'id': habit_id})
+        return jsonify({'status': 'success', 'id': str(habit_id)})
     return redirect(url_for('habits.habits'))
 
 
 @habits_bp.route('/habits/log', methods=['POST'])
 def log_habit():
-    habit_id = request.form.get('habit_id')
+    habit_id = _object_id(request.form.get('habit_id'))
+    if not habit_id:
+        return jsonify({'error': 'Invalid habit'}), 400
     date_str = request.form.get('date') or datetime.now().strftime('%Y-%m-%d')
 
-    habit = db.habits.find_one({'_id': ObjectId(habit_id)})
+    habit = db.habits.find_one({'_id': habit_id})
     if not habit:
         return jsonify({'error': 'Habit not found'}), 404
 
@@ -126,5 +168,50 @@ def log_habit():
         action = 'added'
 
     if _wants_json():
-        return jsonify({'status': 'success', 'action': action, 'id': habit_id})
+        return jsonify({'status': 'success', 'action': action, 'id': str(habit_id)})
+    return redirect(url_for('habits.habits'))
+
+
+@habits_bp.route('/habits/rest', methods=['POST'])
+def rest_day():
+    """Spend a credit to claim a day off without breaking the streak."""
+    habit_id = _object_id(request.form.get('habit_id'))
+    if not habit_id:
+        return jsonify({'error': 'Invalid habit'}), 400
+    date_str = request.form.get('date') or datetime.now().strftime('%Y-%m-%d')
+
+    habit = db.habits.find_one({'_id': habit_id})
+    if not habit:
+        return jsonify({'error': 'Habit not found'}), 404
+
+    if date_str in habit.get('rest_days', []):
+        db.habits.update_one({'_id': habit['_id']}, {'$pull': {'rest_days': date_str}})
+        action = 'removed'
+    else:
+        if not habit_service.habit_state(habit, datetime.now()).credits:
+            return jsonify({'error': 'No credits available'}), 400
+        db.habits.update_one({'_id': habit['_id']}, {'$addToSet': {'rest_days': date_str}})
+        action = 'added'
+
+    if _wants_json():
+        return jsonify({'status': 'success', 'action': action, 'id': str(habit_id)})
+    return redirect(url_for('habits.habits'))
+
+
+@habits_bp.route('/habits/credit-rate', methods=['POST'])
+def set_credit_rate():
+    habit_id = _object_id(request.form.get('habit_id'))
+    if not habit_id:
+        return jsonify({'error': 'Invalid habit'}), 400
+    every = _int_field(request.form.get('credit_every'), 5, 0, 30)
+    amount = _int_field(request.form.get('credit_amount'), 1, 0, 7)
+
+    db.habits.update_one(
+        {'_id': habit_id},
+        {'$set': {'credit_every': every, 'credit_amount': amount}},
+    )
+
+    if _wants_json():
+        return jsonify({'status': 'success', 'id': str(habit_id),
+                        'credit_every': every, 'credit_amount': amount})
     return redirect(url_for('habits.habits'))

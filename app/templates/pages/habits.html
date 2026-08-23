@@ -1,10 +1,14 @@
 {% extends 'layouts/base.html' %}
-{% from 'components/_macros.html' import page_header, empty_state %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
 
 {% block title %}Habits{% endblock %}
 
 {% block content %}
-{{ page_header('Habit Tracker', 'Consistency is key to success.') }}
+{% call page_header('Habit Tracker', 'Consistency is key to success.') %}
+    <button class="btn btn--ghost btn--sm" data-modal-open="scoringModal">
+        <i class="fa-solid fa-circle-info"></i> How scoring works
+    </button>
+{% endcall %}
 
 <!-- 1. Today's Focus -->
 <div class="section-header">
@@ -12,35 +16,86 @@
     <span class="section-header__meta">{{ today_date }}</span>
 </div>
 
-<div class="score-strip card">
-    <div class="score-strip__value">{{ score.score }}<small>/100</small></div>
-    <div class="score-strip__detail">
-        <strong>Today's score</strong>
-        <span class="card__meta">
-            {{ score.completed }} of {{ score.total }} habits · {{ score.streak_bonus }}% streak momentum
-        </span>
-        <div class="progress"><div class="progress__bar" style="width: {{ score.score }}%"></div></div>
+<div class="panel chart-panel">
+    <div class="panel__header">
+        <select class="select chart-picker" id="chartHabit" aria-label="Show charts for">
+            <option value="">Overall Progress</option>
+            {% for h in score.chart_habits %}
+            <option value="{{ h.id }}">{{ h.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="charts">
+        <div class="chart-card">
+            <h3 class="chart-card__title" id="dailyTitle">Habits done</h3>
+            <svg id="dailyChart" viewBox="0 0 480 200" preserveAspectRatio="none"
+                 role="img" aria-label="Habits completed each day"></svg>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-card__head">
+                <h3 class="chart-card__title" id="totalTitle">Where you are</h3>
+                <span class="chart-card__meta {{ 'is-up' if score.points_delta > 0 }}">
+                    {{ score.points }} pts{% if score.points_delta %} ({{ '+' if score.points_delta > 0 }}{{ score.points_delta }}){% endif %}
+                </span>
+            </div>
+            <svg id="totalChart" viewBox="0 0 480 200" preserveAspectRatio="none"
+                 role="img" aria-label="Points since you started"></svg>
+        </div>
     </div>
 </div>
 
 {% if habits %}
 <div class="habits-grid">
     {% for habit in habits %}
-    <div class="card habit-card" data-id="{{ habit._id }}">
+    <div class="card habit-card {{ 'is-reset' if habit.was_reset and not habit.points }}" data-id="{{ habit._id }}">
         <div class="habit-card__info">
             <h3>{{ habit.name }}</h3>
+            <div class="habit-card__points">
+                {{ habit.points }} <span>pts</span>
+                {% if habit.credits %}
+                <span class="credit-chip" data-tooltip="{{ habit.credits }} rest day{{ '' if habit.credits == 1 else 's' }} banked">
+                    <i class="fa-solid fa-coins"></i> {{ habit.credits }}
+                </span>
+                {% endif %}
+            </div>
             <div class="habit-card__meta">
                 <i class="fa-solid fa-fire"></i> {{ habit.streak }} day streak
             </div>
             <div class="habit-card__meta">
-                <i class="fa-solid fa-calendar-day"></i> {{ habit.days_in_current_year }} days this year
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span data-tooltip="Days followed minus days missed">{{ habit.net_days }} net days</span>
+                {% if habit.tier > 1 %}
+                <span class="tier-chip" data-tooltip="Tier {{ habit.tier }}: +{{ habit.hit_points }} a day, {{ habit.miss_points }} on a miss">x{{ habit.tier }}</span>
+                {% endif %}
             </div>
+            {% if habit.rested_today %}
+            <div class="habit-card__meta habit-card__sub">Rest day used</div>
+            {% elif habit.best_streak > habit.streak %}
+            <div class="habit-card__meta habit-card__sub">Best {{ habit.best_streak }} days</div>
+            {% endif %}
         </div>
-        <button class="check-btn {{ 'is-done' if habit.completed_today }}" data-log
-                aria-label="Toggle {{ habit.name }}"
-                data-tooltip="{{ 'Completed today' if habit.completed_today else 'Mark done' }}">
-            <i class="fa-solid fa-check"></i>
-        </button>
+        <div class="habit-card__actions">
+            <button class="check-btn {{ 'is-done' if habit.completed_today }}{{ ' is-rested' if habit.rested_today }}"
+                    data-log aria-label="Toggle {{ habit.name }}"
+                    data-tooltip="{% if habit.rested_today %}Covered by a rest day{% elif habit.completed_today %}Completed today{% else %}Mark done{% endif %}">
+                <i class="fa-solid fa-{{ 'mug-hot' if habit.rested_today else 'check' }}"></i>
+            </button>
+            {% if habit.rested_today %}
+            <button class="rest-btn is-resting" data-rest
+                    aria-label="Undo rest day for {{ habit.name }}"
+                    data-tooltip="Undo rest day">
+                <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            {% elif habit.can_rest and habit.credits %}
+            <button class="rest-btn" data-rest
+                    aria-label="Use a rest day for {{ habit.name }}"
+                    data-tooltip="Use a rest day ({{ habit.credits }} left)">
+                <i class="fa-solid fa-mug-hot"></i>
+            </button>
+            {% endif %}
+        </div>
     </div>
     {% endfor %}
 </div>
@@ -122,6 +177,15 @@
         <div class="add-row">
             <input class="input" type="text" id="habitNameInput"
                    placeholder="Enter new habit idea..." autocomplete="off">
+            <span class="rest-fields">
+                every
+                <input class="input input--tiny" type="number" id="habitRestEvery"
+                       min="1" max="30" value="5" aria-label="Days per rest earn">
+                days →
+                <input class="input input--tiny" type="number" id="habitRestAmount"
+                       min="0" max="7" value="1" aria-label="Rest days earned">
+                rest
+            </span>
             <button class="btn btn--ghost" onclick="addHabit(false)">Save Idea</button>
             <button class="btn btn--primary" onclick="addHabit(true)">Start Tracking</button>
         </div>
@@ -133,7 +197,23 @@
                 <div class="row-list__item" data-id="{{ habit._id }}">
                     <span class="row">
                         <span>{{ habit.name }}</span>
-                        <span class="streak-badge"><i class="fa-solid fa-fire"></i> {{ habit.streak }} Days</span>
+                        <span class="streak-badge"><i class="fa-solid fa-star"></i> {{ habit.points }} pts</span>
+                        {% if habit.best_streak %}
+                        <span class="streak-badge" data-tooltip="Longest streak so far">
+                            <i class="fa-solid fa-trophy"></i> {{ habit.best_streak }}d
+                        </span>
+                        {% endif %}
+                        <span class="rest-fields">
+                            every
+                            <input class="input input--tiny" type="number" min="1" max="30"
+                                   value="{{ habit.credit_every if habit.credit_every < 9999 else 5 }}"
+                                   data-rest-every aria-label="Days per rest earn for {{ habit.name }}">
+                            days →
+                            <input class="input input--tiny" type="number" min="0" max="7"
+                                   value="{{ habit.credit_amount }}"
+                                   data-rest-amount aria-label="Rest days earned for {{ habit.name }}">
+                            rest
+                        </span>
                     </span>
                     <span class="row">
                         <button class="btn btn--icon" data-pause data-tooltip="Move to ideas"
@@ -174,25 +254,107 @@
         </div>
     </div>
 </details>
+{% call modal('scoringModal', 'How scoring works', '560px') %}
+<div class="scoring">
+        <p>Each habit keeps its own running total, replayed from the day you added it.</p>
+        <ul class="rules">
+            <li><span class="rules__op is-plus">+{{ score.rules.hit }}</span> every day you follow it</li>
+            <li><span class="rules__op is-minus">{{ score.rules.miss }}</span> every day you miss — never below zero</li>
+        </ul>
+        <p>
+            <strong>Net days</strong> is days followed minus days missed. Every
+            {{ score.rules.tier_length }} net days moves the habit up a tier, and
+            each tier is worth one more point a day — and one more on a miss.
+            A single miss costs one net day, not the whole climb.
+        </p>
+        <p>
+            <strong>Rest days</strong> are earned by showing up: set how many you
+            get per stretch of days followed. Spending one covers a day as if you
+            had done it — the streak holds and you keep the point.
+        </p>
+        <p>
+            Miss {{ score.rules.reset_after }} days in a row and the habit resets
+            to zero. It stays on your list — follow it again and it starts
+            building from scratch. Leave it resting long enough and it slips back
+            into your ideas.
+        </p>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block styles %}
 <style>
-    .score-strip { display: flex; align-items: center; gap: var(--sp-5); margin-bottom: var(--sp-5); }
-    .score-strip__value { font-size: var(--fs-2xl); font-weight: 800; color: var(--primary); line-height: 1; }
-    .score-strip__value small { font-size: var(--fs-sm); color: var(--text-subtle); font-weight: 500; }
-    .score-strip__detail { flex: 1; display: flex; flex-direction: column; gap: var(--sp-1); }
-    .progress { height: 8px; background: var(--surface-alt); border-radius: var(--r-full); overflow: hidden; margin-top: var(--sp-2); }
-    .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+
+
+    .chart-picker { width: auto; min-width: 200px; max-width: 280px; }
+
+    .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--sp-5);
+        margin-top: var(--sp-4);
+    }
+    .chart-panel { margin-bottom: var(--sp-5); }
+    .chart-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+    .chart-card__title { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
+    .chart-card__meta { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
+    .chart-card__meta.is-up { color: var(--success); }
+    .chart-card { min-width: 0; }
+    .chart-card svg { width: 100%; height: 200px; display: block; margin-top: var(--sp-3); }
+
+    .rules { list-style: none; padding: 0; margin: 0 0 var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); }
+    .rules li { display: flex; align-items: center; gap: var(--sp-3); }
+    .rules__op { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+    .rules__op.is-plus { color: var(--success); }
+    .rules__op.is-minus { color: var(--danger, #e5484d); }
+    .rules__op.is-credit { color: var(--primary); }
+    .btn--sm { font-size: var(--fs-xs); padding: var(--sp-1) var(--sp-3); }
 
     .habits-grid {
         display: grid;
+        margin-bottom: var(--sp-5);
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
         gap: var(--sp-4);
     }
     .habit-card { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
     .habit-card__info h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); font-weight: 600; color: var(--text); }
     .habit-card__meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+
+    .habit-card.is-reset { opacity: .72; }
+    .habit-card__actions { display: flex; flex-direction: column; gap: var(--sp-2); align-items: center; }
+    .rest-btn {
+        width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface);
+        color: var(--text-subtle); font-size: var(--fs-xs);
+        display: grid; place-items: center; transition: all var(--transition);
+    }
+    .rest-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .rest-btn.is-resting { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
+    .check-btn.is-rested {
+        background: var(--surface-alt);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+    .habit-card__points { font-size: var(--fs-lg); font-weight: 700; color: var(--primary); margin-bottom: var(--sp-1); }
+    .habit-card__points span { font-size: var(--fs-xs); font-weight: 500; color: var(--text-subtle); }
+    .habit-card__sub { color: var(--text-subtle); font-size: var(--fs-xs); min-height: 1em; }
+    .habit-card__meta { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+    .tier-chip {
+        padding: 0 var(--sp-2); border-radius: var(--r-full);
+        background: var(--primary); color: #fff;
+        font-size: var(--fs-xs); font-weight: 700;
+    }
+    .credit-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        margin-left: var(--sp-2); padding: 1px var(--sp-2);
+        background: var(--surface-alt); border-radius: var(--r-full);
+        font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted);
+    }
+    .rest-fields {
+        display: inline-flex; align-items: center; gap: var(--sp-2);
+        font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;
+    }
+    .input--tiny { width: 52px; flex: 0 0 52px; min-width: 52px; text-align: center; padding: 4px; }
 
     .add-row {
         display: flex;
@@ -228,7 +390,6 @@
     }
 
     @media (max-width: 480px) {
-        .score-strip { flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
         .add-row .btn { flex: 1; }
         .input--search { width: 100%; }
     }
@@ -237,12 +398,143 @@
 
 {% block scripts %}
 <script>
+const SERIES = {{ score.series | tojson }};
+
+const W = 480, H = 200, PAD = { top: 10, right: 22, bottom: 20, left: 30 };
+const PLOT_W = W - PAD.left - PAD.right;
+const PLOT_H = H - PAD.top - PAD.bottom;
+
+let habitFilter = '';
+
+/* A single point would divide by zero, so it sits in the middle instead. */
+function spanX(i, count) {
+    return PAD.left + (count > 1 ? (i / (count - 1)) * PLOT_W : PLOT_W / 2);
+}
+
+function axis(max, ticks, unit = '') {
+    return ticks.map((t) => {
+        const y = PAD.top + PLOT_H - (t / max) * PLOT_H;
+        return `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${W - PAD.right}" y2="${y.toFixed(1)}"
+                      stroke="var(--border-soft)" stroke-width="1"/>
+                <text x="${PAD.left - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end"
+                      font-size="9" fill="var(--text-subtle)">${t}${unit}</text>`;
+    }).join('');
+}
+
+function dateLabels(count) {
+    const step = Math.max(1, Math.floor(count / 5));
+    return SERIES.labels.map((label, i) => (i % step === 0 || i === count - 1)
+        ? `<text x="${spanX(i, count).toFixed(1)}" y="${H - 5}"
+                 text-anchor="middle" font-size="9" fill="var(--text-subtle)">${label}</text>`
+        : '').join('');
+}
+
+/* Habits completed on a day: all of them, or one when filtered. */
+function completedOn(i) {
+    return habitFilter ? SERIES.per_habit[habitFilter].done[i] : SERIES.completed[i];
+}
+
+/* Points on a day: every habit added up, or one when filtered. */
+function pointsOn(i) {
+    return habitFilter ? SERIES.per_habit[habitFilter].points[i] : SERIES.points[i];
+}
+
+/* Bar chart: one bar per day, height = habits completed that day. */
+function drawDaily() {
+    const count = SERIES.labels.length;
+    const slot = PLOT_W / count;
+    const width = Math.max(0.8, slot * 0.72);
+    const values = SERIES.labels.map((_, i) => completedOn(i));
+    const max = Math.max(...values, 1);
+
+    const bars = values.map((done, i) => {
+        const h = (done / max) * PLOT_H;
+        const x = PAD.left + i * slot + (slot - width) / 2;
+        const y = PAD.top + PLOT_H - h;
+        const tracked = SERIES.total[i];
+        const full = habitFilter ? done : (tracked && done >= tracked);
+        const fill = full ? 'var(--success)'
+                   : done ? 'var(--primary)' : 'var(--border-soft)';
+        const label = habitFilter
+            ? `${SERIES.labels[i]}: ${done ? 'done' : 'not done'}`
+            : `${SERIES.labels[i]}: ${done} of ${tracked} done`;
+        return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${width.toFixed(1)}"
+                      height="${Math.max(h, done ? 1.5 : 1).toFixed(1)}" rx="1.5" fill="${fill}">
+                    <title>${label}</title>
+                </rect>`;
+    }).join('');
+
+    // Whole-number ticks only — half a habit means nothing.
+    const ticks = max <= 4
+        ? Array.from({ length: max + 1 }, (_, i) => i)
+        : [0, Math.round(max / 2), max];
+
+    document.getElementById('dailyChart').innerHTML =
+        axis(max, ticks) + dateLabels(count) + bars;
+}
+
+/* Line chart: cumulative points, with a dashed line at the best ever reached. */
+function drawTotal() {
+    const count = SERIES.labels.length;
+    const values = SERIES.labels.map((_, i) => pointsOn(i));
+    const max = Math.max(...values, 10);
+    const x = (i) => spanX(i, count);
+    const y = (v) => PAD.top + PLOT_H - (v / max) * PLOT_H;
+
+    const line = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+    const area = `${line}L${x(count - 1).toFixed(1)},${(PAD.top + PLOT_H).toFixed(1)}`
+               + `L${x(0).toFixed(1)},${(PAD.top + PLOT_H).toFixed(1)}Z`;
+
+    const best = Math.max(...values);
+    const peak = best && best > values[count - 1]
+        ? `<line x1="${PAD.left}" y1="${y(best).toFixed(1)}" x2="${W - PAD.right}" y2="${y(best).toFixed(1)}"
+                 stroke="var(--text-subtle)" stroke-width="1" stroke-dasharray="3 3"/>
+           <text x="${W - PAD.right}" y="${(y(best) - 4).toFixed(1)}" text-anchor="end"
+                 font-size="9" fill="var(--text-subtle)">best ${best}</text>` : '';
+
+    const step = Math.round(max / 2);
+    document.getElementById('totalChart').innerHTML = `
+        <defs>
+            <linearGradient id="totalFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>
+            </linearGradient>
+        </defs>
+        ${axis(max, [0, step, max])}${dateLabels(count)}${peak}
+        <path d="${area}" fill="url(#totalFill)"/>
+        <path d="${line}" fill="none" stroke="var(--primary)" stroke-width="2"
+              stroke-linejoin="round" stroke-linecap="round"/>`;
+}
+
+function refreshCharts() {
+    drawDaily();
+    drawTotal();
+
+    const picked = document.querySelector(`#chartHabit option[value="${habitFilter}"]`);
+    const name = habitFilter && picked ? picked.textContent.trim() : '';
+
+    document.getElementById('dailyTitle').textContent = habitFilter ? name : 'Habits done';
+    document.getElementById('totalTitle').textContent = habitFilter ? `${name} points` : 'Where you are';
+}
+
+document.getElementById('chartHabit').addEventListener('change', (e) => {
+    habitFilter = e.target.value;
+    refreshCharts();
+});
+
+refreshCharts();
+
 async function addHabit(active) {
     const input = document.getElementById('habitNameInput');
     const name = input.value.trim();
     if (!name) return input.focus();
 
-    await api.post("{{ url_for('habits.add_habit') }}", { name, active: active ? 'true' : 'false' });
+    await api.post("{{ url_for('habits.add_habit') }}", {
+        name,
+        active: active ? 'true' : 'false',
+        credit_every: document.getElementById('habitRestEvery').value,
+        credit_amount: document.getElementById('habitRestAmount').value,
+    });
     input.value = '';
     location.reload();
 }
@@ -254,10 +546,28 @@ function filterIdeas() {
     });
 }
 
+document.addEventListener('change', async (e) => {
+    const field = e.target.closest('[data-rest-every], [data-rest-amount]');
+    if (!field) return;
+    const row = field.closest('[data-id]');
+    await api.post("{{ url_for('habits.set_credit_rate') }}", {
+        habit_id: row.dataset.id,
+        credit_every: row.querySelector('[data-rest-every]').value,
+        credit_amount: row.querySelector('[data-rest-amount]').value,
+    });
+    location.reload();
+});
+
 document.addEventListener('click', async (e) => {
     const holder = e.target.closest('[data-id]');
     if (!holder) return;
     const id = holder.dataset.id;
+
+    if (e.target.closest('[data-rest]')) {
+        await api.post("{{ url_for('habits.rest_day') }}", { habit_id: id });
+        location.reload();
+        return;
+    }
 
     if (e.target.closest('[data-log]')) {
         await api.post("{{ url_for('habits.log_habit') }}", { habit_id: id });

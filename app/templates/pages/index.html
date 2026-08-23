@@ -15,7 +15,7 @@
         <span class="stat__icon stat__icon--habit"><i class="fa-solid fa-fire"></i></span>
         <span class="stat__title">Habit Score</span>
         <span class="stat__value">{{ habit_score.score }}</span>
-        <span class="stat__label">{{ habit_score.streak_bonus }}% streak momentum</span>
+        <span class="stat__label">{{ habit_score.completed }} of {{ habit_score.total }} done today</span>
         <div class="progress"><div class="progress__bar" style="width: {{ habit_score.score }}%"></div></div>
     </a>
     <a class="card card--interactive stat" href="{{ url_for('habits.habits') }}">
