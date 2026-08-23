@@ -1,0 +1,215 @@
+{% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import page_header, empty_state %}
+
+{% block title %}Supplements{% endblock %}
+
+{% block content %}
+{{ page_header('Supplements', 'One pick a day, chosen by weight.') }}
+
+<!-- 1. Today's Pick -->
+<div class="section-header">
+    <h2>Today's Pick</h2>
+    <span class="section-header__meta">{{ today_date }}</span>
+</div>
+
+{% if pick %}
+<div class="pick-strip card">
+    <div class="pick-strip__icon"><i class="fa-solid fa-capsules"></i></div>
+    <div class="pick-strip__detail">
+        <strong class="pick-strip__name">{{ pick.name }}</strong>
+        {% if pick.note %}<span class="card__meta">{{ pick.note }}</span>{% endif %}
+        <span class="card__meta">
+            {{ pick.chance }}% chance &middot; taken {{ pick.days_this_year }} days this year
+        </span>
+    </div>
+    <div class="pick-strip__actions">
+        <button class="check-btn {{ 'is-done' if pick.taken_today }}"
+                data-log data-id="{{ pick._id }}"
+                aria-label="Toggle {{ pick.name }}"
+                data-tooltip="{{ 'Taken today' if pick.taken_today else 'Mark taken' }}">
+            <i class="fa-solid fa-check"></i>
+        </button>
+        <button class="btn btn--ghost" onclick="reroll()">
+            <i class="fa-solid fa-dice"></i> Re-roll
+        </button>
+    </div>
+</div>
+{% else %}
+    {{ empty_state('No supplements with a weight above zero. Add one below.', 'fa-solid fa-capsules') }}
+{% endif %}
+
+<!-- 2. The Odds -->
+{% if supplements %}
+<div class="section-header">
+    <h2>The Odds</h2>
+    <span class="section-header__meta">{{ total_weight }} total weight</span>
+</div>
+
+<div class="panel">
+    <div class="odds-list">
+        {% for supplement in supplements %}
+        <div class="odds-row {{ 'is-picked' if pick and pick._id == supplement._id }}"
+             data-id="{{ supplement._id }}">
+            <div class="odds-row__head">
+                <span class="odds-row__name">
+                    {{ supplement.name }}
+                    {% if pick and pick._id == supplement._id %}
+                        <span class="badge badge--picked">Today</span>
+                    {% endif %}
+                    {% if supplement.taken_today %}
+                        <span class="badge badge--taken"><i class="fa-solid fa-check"></i> Taken</span>
+                    {% endif %}
+                </span>
+                <span class="odds-row__chance">{{ supplement.chance }}%</span>
+            </div>
+            <div class="progress">
+                <div class="progress__bar" style="width: {{ supplement.chance }}%"></div>
+            </div>
+            <div class="odds-row__meta card__meta">
+                taken {{ supplement.times_taken }} times &middot; {{ supplement.days_this_year }} this year
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- 3. Manage -->
+<div class="section-header">
+    <h2>Manage Supplements</h2>
+</div>
+
+<details class="manage">
+    <summary class="manage__header">
+        <h3>Edit / Add Supplements</h3>
+        <i class="fa-solid fa-chevron-down"></i>
+    </summary>
+
+    <div class="manage__body">
+        <div class="add-row">
+            <input class="input" type="text" id="suppNameInput"
+                   placeholder="Supplement name..." autocomplete="off">
+            <input class="input input--weight" type="number" id="suppWeightInput"
+                   min="0" step="1" value="10" placeholder="Weight" aria-label="Weight">
+            <button class="btn btn--primary" onclick="addSupplement()">Add</button>
+        </div>
+        <p class="card__meta add-row__hint">
+            Weight is relative &mdash; 50 against 30 and 20 is picked half the time. Zero never gets picked.
+        </p>
+
+        <div class="manage__section">
+            <div class="row-list" id="suppList">
+                {% for supplement in supplements %}
+                <div class="row-list__item" data-id="{{ supplement._id }}">
+                    <span class="row">
+                        <span>{{ supplement.name }}</span>
+                        <span class="chance-badge">{{ supplement.chance }}%</span>
+                    </span>
+                    <span class="row">
+                        <input class="input input--weight" type="number" min="0" step="1"
+                               value="{{ supplement.weight }}" data-weight
+                               aria-label="Weight for {{ supplement.name }}">
+                        <button class="btn btn--icon is-danger" data-delete data-tooltip="Delete"
+                                aria-label="Delete {{ supplement.name }}">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </span>
+                </div>
+                {% else %}
+                <p class="card__meta">No supplements yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</details>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .pick-strip { display: flex; align-items: center; gap: var(--sp-5); margin-bottom: var(--sp-5); }
+    .pick-strip__icon { font-size: var(--fs-2xl); color: var(--primary); line-height: 1; }
+    .pick-strip__detail { flex: 1; display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+    .pick-strip__name { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+    .pick-strip__actions { display: flex; align-items: center; gap: var(--sp-3); flex-shrink: 0; }
+
+    .progress { height: 8px; background: var(--surface-alt); border-radius: var(--r-full); overflow: hidden; }
+    .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+
+    .odds-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .odds-row__head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+    .odds-row__name { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+    .odds-row__chance { font-weight: 700; color: var(--primary); flex-shrink: 0; }
+    .odds-row__meta { margin-top: var(--sp-1); }
+    .odds-row.is-picked .progress__bar { background: var(--success); }
+
+    .badge { font-size: var(--fs-xs); font-weight: 600; padding: 2px var(--sp-2); border-radius: var(--r-full); }
+    .badge--picked { background: var(--primary); color: #fff; }
+    .badge--taken { background: var(--success); color: #fff; }
+    .chance-badge { font-size: var(--fs-xs); color: var(--text-muted); }
+
+    .add-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+    .add-row .input { flex: 1; min-width: 160px; }
+    .add-row__hint { padding-bottom: var(--sp-5); margin-bottom: var(--sp-5); border-bottom: 1px solid var(--border-soft); }
+    .input--weight { width: 90px; flex: 0 0 90px; min-width: 90px; }
+
+    @media (max-width: 480px) {
+        .pick-strip { flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+        .pick-strip__actions { width: 100%; justify-content: space-between; }
+        .add-row .btn { flex: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function addSupplement() {
+    const input = document.getElementById('suppNameInput');
+    const weightInput = document.getElementById('suppWeightInput');
+    const name = input.value.trim();
+    if (!name) return input.focus();
+
+    await api.post("{{ url_for('supplements.add_supplement') }}", {
+        name,
+        weight: weightInput.value || '10',
+    });
+    input.value = '';
+    location.reload();
+}
+
+async function reroll() {
+    await api.post("{{ url_for('supplements.reroll') }}");
+    location.reload();
+}
+
+document.addEventListener('click', async (e) => {
+    const holder = e.target.closest('[data-id]');
+    if (!holder) return;
+    const id = holder.dataset.id;
+
+    if (e.target.closest('[data-log]')) {
+        await api.post("{{ url_for('supplements.log_supplement') }}", { supplement_id: id });
+        location.reload();
+    }
+
+    if (e.target.closest('[data-delete]')) {
+        const name = (holder.querySelector('span')?.textContent || 'this supplement').trim();
+        modal.confirm(`Delete "${name}"?`, async () => {
+            await api.post("{{ url_for('supplements.delete_supplement') }}", { supplement_id: id });
+            location.reload();
+        });
+    }
+});
+
+document.addEventListener('change', async (e) => {
+    const field = e.target.closest('[data-weight]');
+    if (!field) return;
+    const id = field.closest('[data-id]').dataset.id;
+
+    await api.post("{{ url_for('supplements.update_weight') }}", {
+        supplement_id: id,
+        weight: field.value,
+    });
+    location.reload();
+});
+</script>
+{% endblock %}

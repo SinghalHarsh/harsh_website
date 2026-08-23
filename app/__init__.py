@@ -6,6 +6,7 @@ BLUEPRINTS = (
     "main",
     "goals",
     "habits",
+    "supplements",
     "reminders",
     "gita",
     "books",

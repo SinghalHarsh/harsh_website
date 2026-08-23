@@ -3,6 +3,7 @@
 NAV_ITEMS = (
     {"url": "/", "label": "Home", "icon": "fa-solid fa-house"},
     {"url": "/habits", "label": "Habits", "icon": "fa-solid fa-check-double"},
+    {"url": "/supplements", "label": "Supplements", "icon": "fa-solid fa-capsules"},
     {"url": "/reminder", "label": "Reminders", "icon": "fa-solid fa-bell"},
     {"url": "/goals", "label": "Goals", "icon": "fa-solid fa-bullseye"},
     {"url": "/quotes", "label": "Quotes", "icon": "fa-solid fa-quote-left"},
