@@ -1,4 +1,5 @@
 {% extends 'layouts/base.html' %}
+{% from 'components/_macros.html' import habit_card %}
 
 {% block title %}Home{% endblock %}
 
@@ -31,6 +32,76 @@
         <span class="stat__label">due today</span>
     </a>
 </div>
+
+{% if habits %}
+<div class="section-header">
+    <h2>Today's Habits</h2>
+    <a class="section-header__meta" href="{{ url_for('habits.habits') }}">Open habits</a>
+</div>
+
+<div class="habits-grid">
+    {% for habit in habits %}
+    {{ habit_card(habit) }}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if supplements %}
+<div class="section-header">
+    <h2>Today's Supplements</h2>
+    <a class="section-header__meta" href="{{ url_for('supplements.supplements') }}">Open supplements</a>
+</div>
+
+<div class="dash-list">
+    {% for supplement in supplements %}
+    <div class="card dash-row" data-id="{{ supplement._id }}">
+        <span class="dash-row__detail">
+            <span class="dash-row__name">{{ supplement.name }}</span>
+            <span class="card__meta">
+                <i class="fa-solid fa-fire"></i> {{ supplement.streak }} day streak
+            </span>
+        </span>
+        <span class="dash-row__actions">
+            {% for slot in slots_for(supplement, supplement_slots) %}
+            <button class="slot-btn {{ 'is-done' if supplement.taken_slots[slot] }}"
+                    data-supplement-log data-slot="{{ slot }}"
+                    aria-label="Toggle {{ supplement.name }} for {{ slot }}"
+                    data-tooltip="{{ slot | capitalize }}{{ ' — taken' if supplement.taken_slots[slot] }}">
+                <i class="fa-solid fa-{{ slot_icons[slot] }}"></i>
+            </button>
+            {% endfor %}
+        </span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% set pending_reminders = todays_reminders | rejectattr('completed') | list %}
+{% if pending_reminders %}
+<div class="section-header">
+    <h2>Reminders Left Today</h2>
+    <a class="section-header__meta" href="{{ url_for('reminders.reminder') }}">Open reminders</a>
+</div>
+
+<div class="dash-list">
+    {% for reminder in pending_reminders %}
+    <div class="card dash-row" data-reminder-row>
+        <span class="dash-row__detail">
+            <span class="dash-row__name">{{ reminder.title }}</span>
+            {% if reminder.recurrence %}
+            <span class="card__meta"><i class="fa-solid fa-repeat"></i> {{ reminder.recurrence }}</span>
+            {% endif %}
+        </span>
+        <button class="check-btn" data-reminder-done
+                data-id="{{ reminder._id }}" data-date="{{ today_iso }}"
+                aria-label="Mark reminder done"
+                data-tooltip="Mark done">
+            <i class="fa-solid fa-check"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
 
 {% block styles %}
@@ -77,5 +148,64 @@
         margin-top: var(--sp-3);
     }
     .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+
+    .dash-list { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-5); }
+    .dash-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+    .dash-row__detail { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .dash-row__name { font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+    .dash-row__actions { display: flex; gap: var(--sp-2); flex-shrink: 0; }
+    .slot-btn {
+        width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface);
+        color: var(--text-subtle); font-size: var(--fs-xs);
+        display: grid; place-items: center; transition: all var(--transition);
+    }
+    .slot-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .slot-btn.is-done { background: var(--success); border-color: var(--success); color: #fff; }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Log or rest a habit straight from the dashboard, then reload so the stat row
+   and the cards both reflect it. */
+document.addEventListener('click', async (e) => {
+    const suppBtn = e.target.closest('[data-supplement-log]');
+    if (suppBtn) {
+        const row = suppBtn.closest('[data-id]');
+        const res = await api.post("{{ url_for('supplements.log_supplement') }}", {
+            supplement_id: row.dataset.id,
+            slot: suppBtn.dataset.slot,
+        });
+        suppBtn.classList.toggle('is-done', res.action === 'added');
+        return;
+    }
+
+    const reminderBtn = e.target.closest('[data-reminder-done]');
+    if (reminderBtn) {
+        await api.post("{{ url_for('reminders.complete_reminder') }}", {
+            id: reminderBtn.dataset.id,
+            date: reminderBtn.dataset.date,
+        });
+        // Completing drops it off today's list — take the row with it.
+        reminderBtn.closest('[data-reminder-row]').remove();
+        return;
+    }
+
+    const card = e.target.closest('.habit-card[data-id]');
+    if (!card) return;
+    const habit_id = card.dataset.id;
+
+    if (e.target.closest('[data-rest]')) {
+        await api.post("{{ url_for('habits.rest_day') }}", { habit_id });
+        location.reload();
+        return;
+    }
+
+    if (e.target.closest('[data-log]')) {
+        await api.post("{{ url_for('habits.log_habit') }}", { habit_id });
+        location.reload();
+    }
+});
+</script>
 {% endblock %}

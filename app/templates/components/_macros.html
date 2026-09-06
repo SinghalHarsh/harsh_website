@@ -34,6 +34,59 @@
 {% endmacro %}
 
 
+{# One habit's card. Shared so the dashboard and the habits page never drift. #}
+{% macro habit_card(habit) %}
+<div class="card habit-card {{ 'is-reset' if habit.was_reset and not habit.points }}" data-id="{{ habit._id }}">
+    <div class="habit-card__info">
+        <h3>{{ habit.name }}</h3>
+        <div class="habit-card__points">
+            {{ habit.points }} <span>pts</span>
+            {% if habit.credits %}
+            <span class="credit-chip" data-tooltip="{{ habit.credits }} rest day{{ '' if habit.credits == 1 else 's' }} banked">
+                <i class="fa-solid fa-coins"></i> {{ habit.credits }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="habit-card__meta">
+            <i class="fa-solid fa-fire"></i> {{ habit.streak }} day streak
+        </div>
+        <div class="habit-card__meta">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span data-tooltip="Days followed minus days missed">{{ habit.net_days }} net days</span>
+            {% if habit.tier > 1 %}
+            <span class="tier-chip" data-tooltip="Tier {{ habit.tier }}: +{{ habit.hit_points }} a day, {{ habit.miss_points }} on a miss">x{{ habit.tier }}</span>
+            {% endif %}
+        </div>
+        {% if habit.rested_today %}
+        <div class="habit-card__meta habit-card__sub">Rest day used</div>
+        {% elif habit.best_streak > habit.streak %}
+        <div class="habit-card__meta habit-card__sub">Best {{ habit.best_streak }} days</div>
+        {% endif %}
+    </div>
+    <div class="habit-card__actions">
+        <button class="check-btn {{ 'is-done' if habit.completed_today }}{{ ' is-rested' if habit.rested_today }}"
+                data-log aria-label="Toggle {{ habit.name }}"
+                data-tooltip="{% if habit.rested_today %}Covered by a rest day{% elif habit.completed_today %}Completed today{% else %}Mark done{% endif %}">
+            <i class="fa-solid fa-{{ 'mug-hot' if habit.rested_today else 'check' }}"></i>
+        </button>
+        {% if habit.rested_today %}
+        <button class="rest-btn is-resting" data-rest
+                aria-label="Undo rest day for {{ habit.name }}"
+                data-tooltip="Undo rest day">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        {% elif habit.can_rest and habit.credits %}
+        <button class="rest-btn" data-rest
+                aria-label="Use a rest day for {{ habit.name }}"
+                data-tooltip="Use a rest day ({{ habit.credits }} left)">
+            <i class="fa-solid fa-mug-hot"></i>
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
 {% macro field(label, name, type='text', value='', required=False, placeholder='') %}
 <div class="field">
     <label class="field__label" for="{{ name }}">{{ label }}</label>

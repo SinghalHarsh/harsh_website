@@ -7,6 +7,8 @@ from datetime import datetime
 from app.extensions import db
 from app.services import habits as habit_service
 from app.services import reminders as reminder_service
+from app.services import supplements as supplement_service
+from app.routes.supplements import active_supplements, enabled_slots
 
 main_bp = Blueprint('main', __name__)
 
@@ -40,19 +42,32 @@ def home():
     for habit in active_habits:
         habit_service.annotate(habit, today)
 
+    # Long-dead habits read as ideas on the habits page — keep the board the same here.
+    active_habits = [h for h in active_habits if not h.get('should_retire')]
+
     pending_habits = [h for h in active_habits if not h['completed_today']]
     score = habit_service.daily_score(active_habits, today)
 
     active_goals = list(db.goals.find({"completed": {"$ne": True}}))
     todays_reminders = reminder_service.active_on(list(db.reminders.find()), today_str)
 
+    supplement_slots = enabled_slots()
+    supplements = sorted(
+        active_supplements(annotated=True), key=lambda s: s['name'].lower()
+    )
+
     all_content = _all_quote_content()
 
     return render_template(
         'pages/index.html',
+        supplements=supplements,
+        supplement_slots=supplement_slots,
+        slots_for=supplement_service.slots_for,
+        slot_icons=supplement_service.SLOT_ICONS,
         habits_completed=score['completed'],
         habits_total=score['total'],
         habit_score=score,
+        habits=active_habits,
         pending_habits=pending_habits,
         active_goals_count=len(active_goals),
         active_goals=active_goals,

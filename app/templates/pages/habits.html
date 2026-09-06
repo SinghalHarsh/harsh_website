@@ -1,5 +1,5 @@
 {% extends 'layouts/base.html' %}
-{% from 'components/_macros.html' import page_header, empty_state, modal %}
+{% from 'components/_macros.html' import page_header, empty_state, modal, habit_card %}
 
 {% block title %}Habits{% endblock %}
 
@@ -15,6 +15,16 @@
     <h2>Today's Focus</h2>
     <span class="section-header__meta">{{ today_date }}</span>
 </div>
+
+{% if habits %}
+<div class="habits-grid">
+    {% for habit in habits %}
+    {{ habit_card(habit) }}
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No habits being tracked. Add one below.', 'fa-solid fa-check-double') }}
+{% endif %}
 
 <div class="panel chart-panel">
     <div class="panel__header">
@@ -45,63 +55,6 @@
         </div>
     </div>
 </div>
-
-{% if habits %}
-<div class="habits-grid">
-    {% for habit in habits %}
-    <div class="card habit-card {{ 'is-reset' if habit.was_reset and not habit.points }}" data-id="{{ habit._id }}">
-        <div class="habit-card__info">
-            <h3>{{ habit.name }}</h3>
-            <div class="habit-card__points">
-                {{ habit.points }} <span>pts</span>
-                {% if habit.credits %}
-                <span class="credit-chip" data-tooltip="{{ habit.credits }} rest day{{ '' if habit.credits == 1 else 's' }} banked">
-                    <i class="fa-solid fa-coins"></i> {{ habit.credits }}
-                </span>
-                {% endif %}
-            </div>
-            <div class="habit-card__meta">
-                <i class="fa-solid fa-fire"></i> {{ habit.streak }} day streak
-            </div>
-            <div class="habit-card__meta">
-                <i class="fa-solid fa-scale-balanced"></i>
-                <span data-tooltip="Days followed minus days missed">{{ habit.net_days }} net days</span>
-                {% if habit.tier > 1 %}
-                <span class="tier-chip" data-tooltip="Tier {{ habit.tier }}: +{{ habit.hit_points }} a day, {{ habit.miss_points }} on a miss">x{{ habit.tier }}</span>
-                {% endif %}
-            </div>
-            {% if habit.rested_today %}
-            <div class="habit-card__meta habit-card__sub">Rest day used</div>
-            {% elif habit.best_streak > habit.streak %}
-            <div class="habit-card__meta habit-card__sub">Best {{ habit.best_streak }} days</div>
-            {% endif %}
-        </div>
-        <div class="habit-card__actions">
-            <button class="check-btn {{ 'is-done' if habit.completed_today }}{{ ' is-rested' if habit.rested_today }}"
-                    data-log aria-label="Toggle {{ habit.name }}"
-                    data-tooltip="{% if habit.rested_today %}Covered by a rest day{% elif habit.completed_today %}Completed today{% else %}Mark done{% endif %}">
-                <i class="fa-solid fa-{{ 'mug-hot' if habit.rested_today else 'check' }}"></i>
-            </button>
-            {% if habit.rested_today %}
-            <button class="rest-btn is-resting" data-rest
-                    aria-label="Undo rest day for {{ habit.name }}"
-                    data-tooltip="Undo rest day">
-                <i class="fa-solid fa-rotate-left"></i>
-            </button>
-            {% elif habit.can_rest and habit.credits %}
-            <button class="rest-btn" data-rest
-                    aria-label="Use a rest day for {{ habit.name }}"
-                    data-tooltip="Use a rest day ({{ habit.credits }} left)">
-                <i class="fa-solid fa-mug-hot"></i>
-            </button>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-    {{ empty_state('No habits being tracked. Add one below.', 'fa-solid fa-check-double') }}
-{% endif %}
 
 <!-- 2. Progress Insights -->
 <div class="section-header">
@@ -310,46 +263,6 @@
     .rules__op.is-credit { color: var(--primary); }
     .btn--sm { font-size: var(--fs-xs); padding: var(--sp-1) var(--sp-3); }
 
-    .habits-grid {
-        display: grid;
-        margin-bottom: var(--sp-5);
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: var(--sp-4);
-    }
-    .habit-card { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-    .habit-card__info h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); font-weight: 600; color: var(--text); }
-    .habit-card__meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
-
-    .habit-card.is-reset { opacity: .72; }
-    .habit-card__actions { display: flex; flex-direction: column; gap: var(--sp-2); align-items: center; }
-    .rest-btn {
-        width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
-        border: 1px solid var(--border); background: var(--surface);
-        color: var(--text-subtle); font-size: var(--fs-xs);
-        display: grid; place-items: center; transition: all var(--transition);
-    }
-    .rest-btn:hover { color: var(--primary); border-color: var(--primary); }
-    .rest-btn.is-resting { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
-    .check-btn.is-rested {
-        background: var(--surface-alt);
-        border-color: var(--primary);
-        color: var(--primary);
-    }
-    .habit-card__points { font-size: var(--fs-lg); font-weight: 700; color: var(--primary); margin-bottom: var(--sp-1); }
-    .habit-card__points span { font-size: var(--fs-xs); font-weight: 500; color: var(--text-subtle); }
-    .habit-card__sub { color: var(--text-subtle); font-size: var(--fs-xs); min-height: 1em; }
-    .habit-card__meta { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-    .tier-chip {
-        padding: 0 var(--sp-2); border-radius: var(--r-full);
-        background: var(--primary); color: #fff;
-        font-size: var(--fs-xs); font-weight: 700;
-    }
-    .credit-chip {
-        display: inline-flex; align-items: center; gap: 4px;
-        margin-left: var(--sp-2); padding: 1px var(--sp-2);
-        background: var(--surface-alt); border-radius: var(--r-full);
-        font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted);
-    }
     .rest-fields {
         display: inline-flex; align-items: center; gap: var(--sp-2);
         font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;
