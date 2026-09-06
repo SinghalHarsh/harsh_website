@@ -1,80 +1,119 @@
 {% extends 'layouts/base.html' %}
-{% from 'components/_macros.html' import page_header, empty_state %}
+{% from 'components/_macros.html' import page_header, empty_state, modal %}
 
 {% block title %}Supplements{% endblock %}
 
 {% block content %}
-{{ page_header('Supplements', 'One pick a day, chosen by weight.') }}
+{% call page_header('Supplements', 'What you take, and when.') %}
+    <button class="btn btn--ghost btn--sm" data-modal-open="slotsModal">
+        <i class="fa-solid fa-clock"></i> When I take them
+    </button>
+{% endcall %}
 
-<!-- 1. Today's Pick -->
+<!-- 1. Today -->
 <div class="section-header">
-    <h2>Today's Pick</h2>
+    <h2>Today</h2>
     <span class="section-header__meta">{{ today_date }}</span>
 </div>
 
-{% if pick %}
-<div class="pick-strip card">
-    <div class="pick-strip__icon"><i class="fa-solid fa-capsules"></i></div>
-    <div class="pick-strip__detail">
-        <strong class="pick-strip__name">{{ pick.name }}</strong>
-        {% if pick.note %}<span class="card__meta">{{ pick.note }}</span>{% endif %}
-        <span class="card__meta">
-            {{ pick.chance }}% chance &middot; taken {{ pick.days_this_year }} days this year
-        </span>
+{% if supplements %}
+<div class="supp-grid">
+    {% for supplement in supplements %}
+    <div class="card supp-card" data-id="{{ supplement._id }}">
+        <div class="supp-card__info">
+            <h3>{{ supplement.name }}</h3>
+            <div class="supp-card__slot">
+                <span class="slot-chip slot-chip--{{ supplement.slot }}">{{ supplement.slot }}</span>
+            </div>
+            <div class="supp-card__meta">
+                <i class="fa-solid fa-fire"></i>
+                <span data-streak>{{ supplement.streak }}</span> day streak
+            </div>
+            <div class="supp-card__meta">
+                <i class="fa-solid fa-capsules"></i>
+                <span data-tooltip="Doses logged all time"><span data-times>{{ supplement.times_taken }}</span> taken</span>
+                <span class="tier-chip" data-tooltip="Days taken this year">{{ supplement.days_this_year }}y</span>
+            </div>
+        </div>
+        <div class="supp-card__actions">
+            {% for slot in slots %}
+            {% if supplement.slot in (slot, 'either') %}
+            <button class="slot-btn {{ 'is-done' if supplement.taken_slots[slot] }}"
+                    data-log data-slot="{{ slot }}"
+                    aria-label="Toggle {{ supplement.name }} for {{ slot }}"
+                    data-tooltip="{{ slot | capitalize }}{{ ' — taken' if supplement.taken_slots[slot] }}">
+                <i class="fa-solid fa-{{ slot_icons[slot] }}"></i>
+            </button>
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
-    <div class="pick-strip__actions">
-        <button class="check-btn {{ 'is-done' if pick.taken_today }}"
-                data-log data-id="{{ pick._id }}"
-                aria-label="Toggle {{ pick.name }}"
-                data-tooltip="{{ 'Taken today' if pick.taken_today else 'Mark taken' }}">
-            <i class="fa-solid fa-check"></i>
-        </button>
-        <button class="btn btn--ghost" onclick="reroll()">
-            <i class="fa-solid fa-dice"></i> Re-roll
-        </button>
-    </div>
+    {% endfor %}
 </div>
-{% else %}
-    {{ empty_state('No supplements with a weight above zero. Add one below.', 'fa-solid fa-capsules') }}
 {% endif %}
 
-<!-- 2. The Odds -->
+<!-- 2. Intake History -->
 {% if supplements %}
 <div class="section-header">
-    <h2>The Odds</h2>
-    <span class="section-header__meta">{{ total_weight }} total weight</span>
+    <h2>Intake History</h2>
 </div>
 
 <div class="panel">
-    <div class="odds-list">
-        {% for supplement in supplements %}
-        <div class="odds-row {{ 'is-picked' if pick and pick._id == supplement._id }}"
-             data-id="{{ supplement._id }}">
-            <div class="odds-row__head">
-                <span class="odds-row__name">
+    <div class="panel__header">
+        <form action="{{ url_for('supplements.supplements') }}" method="GET" id="suppForm">
+            <input type="hidden" name="year" value="{{ selected_year }}">
+            <select class="select" name="supplement" onchange="document.getElementById('suppForm').submit()">
+                <option value="overall" {{ 'selected' if is_overall }}>All supplements</option>
+                {% for supplement in supplements %}
+                <option value="{{ supplement.name }}"
+                        {{ 'selected' if not is_overall and selected_supplement.name == supplement.name }}>
                     {{ supplement.name }}
-                    {% if pick and pick._id == supplement._id %}
-                        <span class="badge badge--picked">Today</span>
-                    {% endif %}
-                    {% if supplement.taken_today %}
-                        <span class="badge badge--taken"><i class="fa-solid fa-check"></i> Taken</span>
-                    {% endif %}
-                </span>
-                <span class="odds-row__chance">{{ supplement.chance }}%</span>
-            </div>
-            <div class="progress">
-                <div class="progress__bar" style="width: {{ supplement.chance }}%"></div>
-            </div>
-            <div class="odds-row__meta card__meta">
-                taken {{ supplement.times_taken }} times &middot; {{ supplement.days_this_year }} this year
-            </div>
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <div class="year-nav">
+            <a href="{{ url_for('supplements.supplements', supplement='overall' if is_overall else selected_supplement.name, year=selected_year - 1) }}"
+               aria-label="Previous year"><i class="fa-solid fa-chevron-left"></i></a>
+            <span class="year-nav__current">{{ selected_year }}</span>
+            <a href="{{ url_for('supplements.supplements', supplement='overall' if is_overall else selected_supplement.name, year=selected_year + 1) }}"
+               aria-label="Next year"><i class="fa-solid fa-chevron-right"></i></a>
         </div>
-        {% endfor %}
+    </div>
+
+    <div class="heatmap-wrap">
+        <div class="heatmap-days">
+            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+        </div>
+        <div class="heatmap">
+            {% for month in months_data %}
+            <div class="heatmap__month">
+                <div class="heatmap__label">{{ month.name }}</div>
+                <div class="heatmap__grid">
+                    {% for day in month.days %}
+                        {% if not day %}
+                            <span class="heatmap__cell heatmap__cell--empty"></span>
+                        {% elif day.future %}
+                            <span class="heatmap__cell heatmap__cell--future"></span>
+                        {% elif is_overall %}
+                            <span class="heatmap__cell {{ 'heatmap__cell--today' if day.date == today_iso }}"
+                                  data-tooltip="{{ day.display_date }}: {{ day.taken_count }} taken"
+                                  {% if day.taken_count %}style="background: var(--success); opacity: {{ [0.3 + day.taken_count * 0.18, 1] | min }}"{% endif %}></span>
+                        {% else %}
+                            <span class="heatmap__cell {{ 'heatmap__cell--done' if day.taken }} {{ 'heatmap__cell--today' if day.date == today_iso }}"
+                                  data-tooltip="{{ day.display_date }}: {{ 'Taken' if day.taken else 'Not taken' }}"></span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endif %}
 
-<!-- 3. Manage -->
+<!-- 4. Manage -->
 <div class="section-header">
     <h2>Manage Supplements</h2>
 </div>
@@ -89,12 +128,17 @@
         <div class="add-row">
             <input class="input" type="text" id="suppNameInput"
                    placeholder="Supplement name..." autocomplete="off">
-            <input class="input input--weight" type="number" id="suppWeightInput"
-                   min="0" step="1" value="10" placeholder="Weight" aria-label="Weight">
+            <select class="select input--slot" id="suppSlotInput" aria-label="Slot">
+                <option value="either">Either</option>
+                {% for slot in slots %}
+                <option value="{{ slot }}">{{ slot | capitalize }}</option>
+                {% endfor %}
+            </select>
             <button class="btn btn--primary" onclick="addSupplement()">Add</button>
         </div>
         <p class="card__meta add-row__hint">
-            Weight is relative &mdash; 50 against 30 and 20 is picked half the time. Zero never gets picked.
+            Set a slot to fix when a supplement is taken, or leave it on
+            <strong>either</strong> to mark it at any time of day.
         </p>
 
         <div class="manage__section">
@@ -102,13 +146,19 @@
                 {% for supplement in supplements %}
                 <div class="row-list__item" data-id="{{ supplement._id }}">
                     <span class="row">
-                        <span>{{ supplement.name }}</span>
-                        <span class="chance-badge">{{ supplement.chance }}%</span>
+                        <span data-name>{{ supplement.name }}</span>
                     </span>
                     <span class="row">
-                        <input class="input input--weight" type="number" min="0" step="1"
-                               value="{{ supplement.weight }}" data-weight
-                               aria-label="Weight for {{ supplement.name }}">
+                        <select class="select input--slot" data-slot-select
+                                aria-label="Slot for {{ supplement.name }}">
+                            <option value="either" {{ 'selected' if supplement.slot == 'either' }}>Either</option>
+                            {# A slot that was switched off still lists while a supplement sits in it. #}
+                            {% for slot in all_slots if slot in slots or supplement.slot == slot %}
+                            <option value="{{ slot }}" {{ 'selected' if supplement.slot == slot }}>
+                                {{ slot | capitalize }}{{ ' (off)' if slot not in slots }}
+                            </option>
+                            {% endfor %}
+                        </select>
                         <button class="btn btn--icon is-danger" data-delete data-tooltip="Delete"
                                 aria-label="Delete {{ supplement.name }}">
                             <i class="fa-solid fa-trash"></i>
@@ -122,39 +172,76 @@
         </div>
     </div>
 </details>
+
+{% call modal('slotsModal', 'When I take them', '460px') %}
+<div class="scoring">
+    <p>Pick the times of day you actually take supplements.</p>
+    <div class="slot-toggles">
+        {% for slot in all_slots %}
+        <label class="slot-toggle">
+            <input type="checkbox" value="{{ slot }}" data-slot-toggle
+                   {{ 'checked' if slot in slots }}>
+            <i class="fa-solid fa-{{ slot_icons[slot] }}"></i>
+            <span>{{ slot | capitalize }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    <p class="card__meta">
+        Turning a slot off hides its button. Doses already logged under it are kept.
+    </p>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block styles %}
 <style>
-    .pick-strip { display: flex; align-items: center; gap: var(--sp-5); margin-bottom: var(--sp-5); }
-    .pick-strip__icon { font-size: var(--fs-2xl); color: var(--primary); line-height: 1; }
-    .pick-strip__detail { flex: 1; display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
-    .pick-strip__name { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
-    .pick-strip__actions { display: flex; align-items: center; gap: var(--sp-3); flex-shrink: 0; }
+    .slot-toggles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+    .slot-toggle {
+        display: flex; align-items: center; gap: var(--sp-2); cursor: pointer;
+        padding: var(--sp-3); border: 1px solid var(--border);
+        border-radius: var(--r-md, 8px); background: var(--surface);
+        font-weight: 600; color: var(--text-muted); transition: all var(--transition);
+    }
+    .slot-toggle:has(:checked) { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+    .slot-toggle input { accent-color: var(--primary); }
 
-    .progress { height: 8px; background: var(--surface-alt); border-radius: var(--r-full); overflow: hidden; }
-    .progress__bar { height: 100%; background: var(--primary); transition: width var(--transition); }
+    .btn--sm { font-size: var(--fs-xs); padding: var(--sp-1) var(--sp-3); }
 
-    .odds-list { display: flex; flex-direction: column; gap: var(--sp-4); }
-    .odds-row__head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
-    .odds-row__name { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-    .odds-row__chance { font-weight: 700; color: var(--primary); flex-shrink: 0; }
-    .odds-row__meta { margin-top: var(--sp-1); }
-    .odds-row.is-picked .progress__bar { background: var(--success); }
+    .supp-grid { display: grid; margin-bottom: var(--sp-5); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-4); }
+    .supp-card { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+    .supp-card__info h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+    .supp-card__slot { margin-bottom: var(--sp-2); }
+    .supp-card__meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+    .supp-card__actions { display: flex; flex-direction: column; gap: var(--sp-2); align-items: center; }
 
-    .badge { font-size: var(--fs-xs); font-weight: 600; padding: 2px var(--sp-2); border-radius: var(--r-full); }
-    .badge--picked { background: var(--primary); color: #fff; }
-    .badge--taken { background: var(--success); color: #fff; }
-    .chance-badge { font-size: var(--fs-xs); color: var(--text-muted); }
+    .slot-btn {
+        width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface);
+        color: var(--text-subtle); font-size: var(--fs-xs);
+        display: grid; place-items: center; transition: all var(--transition);
+    }
+    .slot-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .slot-btn.is-done { background: var(--success); border-color: var(--success); color: #fff; }
+
+    .slot-chip {
+        padding: 0 var(--sp-2); border-radius: var(--r-full);
+        font-size: var(--fs-xs); font-weight: 600; text-transform: capitalize;
+        background: var(--surface-alt); color: var(--text-muted);
+    }
+    .slot-chip--morning { background: var(--primary); color: #fff; }
+    .slot-chip--afternoon { background: var(--warning, #f5a623); color: #fff; }
+    .slot-chip--evening { background: var(--text-muted); color: #fff; }
+    .slot-chip--night { background: var(--text); color: var(--surface); }
+    .tier-chip { padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--surface-alt); color: var(--text-muted); font-size: var(--fs-xs); font-weight: 700; }
 
     .add-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
     .add-row .input { flex: 1; min-width: 160px; }
     .add-row__hint { padding-bottom: var(--sp-5); margin-bottom: var(--sp-5); border-bottom: 1px solid var(--border-soft); }
-    .input--weight { width: 90px; flex: 0 0 90px; min-width: 90px; }
+    .input--slot { width: 110px; flex: 0 0 110px; min-width: 110px; }
 
     @media (max-width: 480px) {
-        .pick-strip { flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
-        .pick-strip__actions { width: 100%; justify-content: space-between; }
+        .slot-card__head { align-items: flex-start; }
+        .slot-card__tools { width: 100%; justify-content: space-between; }
         .add-row .btn { flex: 1; }
     }
 </style>
@@ -162,22 +249,19 @@
 
 {% block scripts %}
 <script>
+/* Everything updates in place — a reload would scroll back to the top and
+   snap the manage panel shut mid-edit. */
+
 async function addSupplement() {
     const input = document.getElementById('suppNameInput');
-    const weightInput = document.getElementById('suppWeightInput');
     const name = input.value.trim();
     if (!name) return input.focus();
 
     await api.post("{{ url_for('supplements.add_supplement') }}", {
         name,
-        weight: weightInput.value || '10',
+        slot: document.getElementById('suppSlotInput').value,
     });
-    input.value = '';
-    location.reload();
-}
-
-async function reroll() {
-    await api.post("{{ url_for('supplements.reroll') }}");
+    // A new supplement lands in both the card grid and the manage list.
     location.reload();
 }
 
@@ -186,29 +270,53 @@ document.addEventListener('click', async (e) => {
     if (!holder) return;
     const id = holder.dataset.id;
 
-    if (e.target.closest('[data-log]')) {
-        await api.post("{{ url_for('supplements.log_supplement') }}", { supplement_id: id });
-        location.reload();
+    const logBtn = e.target.closest('[data-log]');
+    if (logBtn) {
+        const res = await api.post("{{ url_for('supplements.log_supplement') }}", {
+            supplement_id: id,
+            slot: logBtn.dataset.slot,
+        });
+        logBtn.classList.toggle('is-done', res.action === 'added');
+
+        document.querySelectorAll(`[data-id="${id}"] [data-streak]`)
+            .forEach((el) => { el.textContent = res.streak; });
+        document.querySelectorAll(`[data-id="${id}"] [data-times]`)
+            .forEach((el) => { el.textContent = res.times_taken; });
+        return;
     }
 
     if (e.target.closest('[data-delete]')) {
-        const name = (holder.querySelector('span')?.textContent || 'this supplement').trim();
+        const name = (holder.querySelector('[data-name]')?.textContent || 'this supplement').trim();
         modal.confirm(`Delete "${name}"?`, async () => {
-            await api.post("{{ url_for('supplements.delete_supplement') }}", { supplement_id: id });
-            location.reload();
+            await api.post("{{ url_for('supplements.delete_supplement') }}", {
+                supplement_id: id,
+            });
+            document.querySelectorAll(`[data-id="${id}"]`).forEach((el) => el.remove());
         });
     }
 });
 
 document.addEventListener('change', async (e) => {
-    const field = e.target.closest('[data-weight]');
-    if (!field) return;
-    const id = field.closest('[data-id]').dataset.id;
+    if (e.target.closest('[data-slot-toggle]')) {
+        // Repeated keys, not one joined value — the route reads getlist('slots').
+        const body = new URLSearchParams();
+        document.querySelectorAll('[data-slot-toggle]:checked')
+            .forEach((box) => body.append('slots', box.value));
+        await api.post("{{ url_for('supplements.update_slots') }}", body);
+        // Slots add and remove mark buttons across every card.
+        location.reload();
+        return;
+    }
 
-    await api.post("{{ url_for('supplements.update_weight') }}", {
-        supplement_id: id,
-        weight: field.value,
+    const slotSelect = e.target.closest('[data-slot-select]');
+    if (!slotSelect) return;
+
+    const row = slotSelect.closest('[data-id]');
+    await api.post("{{ url_for('supplements.update_slot') }}", {
+        supplement_id: row.dataset.id,
+        slot: slotSelect.value,
     });
+    // The card's mark buttons follow its slot, so rebuild rather than patch.
     location.reload();
 });
 </script>
