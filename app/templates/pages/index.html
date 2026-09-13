@@ -7,22 +7,24 @@
 <div class="page-header">
     <div>
         <h1>Dashboard</h1>
-        <p>{{ todays_reminders | length }} reminders · {{ pending_habits | length }} habits pending today</p>
+        <p>{{ todays_reminders | length }} reminders · <span data-habits-pending>{{ pending_habits | length }}</span> habits pending today</p>
     </div>
 </div>
 
 <div class="grid grid--3 stat-row">
     <a class="card card--interactive stat" href="{{ url_for('habits.habits') }}">
         <span class="stat__icon stat__icon--habit"><i class="fa-solid fa-fire"></i></span>
-        <span class="stat__title">Habit Score</span>
-        <span class="stat__value">{{ habit_score.score }}</span>
-        <span class="stat__label">{{ habit_score.completed }} of {{ habit_score.total }} done today</span>
-        <div class="progress"><div class="progress__bar" style="width: {{ habit_score.score }}%"></div></div>
+        <span class="stat__title">Habit Points</span>
+        <span class="stat__value" data-habit-points>{{ habit_points }}<small>pts</small></span>
+        <span class="stat__label {{ 'is-up' if habit_points_delta > 0 }}" data-habit-points-delta>
+            {%- if habit_points_delta %}{{ '+' if habit_points_delta > 0 }}{{ habit_points_delta }} this week
+            {%- else %}no change this week{% endif -%}
+        </span>
     </a>
     <a class="card card--interactive stat" href="{{ url_for('habits.habits') }}">
         <span class="stat__icon stat__icon--done"><i class="fa-solid fa-check-double"></i></span>
         <span class="stat__title">Habits Done</span>
-        <span class="stat__value">{{ habits_completed }}<small>/{{ habits_total }}</small></span>
+        <span class="stat__value"><span data-habits-done>{{ habits_completed }}</span><small>/{{ habits_total }}</small></span>
         <span class="stat__label">completed today</span>
     </a>
     <a class="card card--interactive stat" href="{{ url_for('reminders.reminder') }}">
@@ -167,8 +169,31 @@
 
 {% block scripts %}
 <script>
-/* Log or rest a habit straight from the dashboard, then reload so the stat row
-   and the cards both reflect it. */
+/* Log or rest a habit straight from the dashboard. The response carries the
+   habit's freshly scored card and the day's totals, so the card, the stat row
+   and the header count all move without a reload. */
+function applyHabit(card, res) {
+    if (res.card) card.outerHTML = res.card;
+    else card.remove();
+
+    const { completed, total } = res.score;
+    document.querySelectorAll('[data-habit-points]').forEach((el) => {
+        // Keep the trailing <small>pts</small>, replace only the number.
+        el.firstChild.textContent = res.points;
+    });
+    document.querySelectorAll('[data-habit-points-delta]').forEach((el) => {
+        const d = res.points_delta;
+        el.textContent = d ? `${d > 0 ? '+' : ''}${d} this week` : 'no change this week';
+        el.classList.toggle('is-up', d > 0);
+    });
+    document.querySelectorAll('[data-habits-done]').forEach((el) => {
+        el.textContent = completed;
+    });
+    document.querySelectorAll('[data-habits-pending]').forEach((el) => {
+        el.textContent = total - completed;
+    });
+}
+
 document.addEventListener('click', async (e) => {
     const suppBtn = e.target.closest('[data-supplement-log]');
     if (suppBtn) {
@@ -197,14 +222,17 @@ document.addEventListener('click', async (e) => {
     const habit_id = card.dataset.id;
 
     if (e.target.closest('[data-rest]')) {
-        await api.post("{{ url_for('habits.rest_day') }}", { habit_id });
-        location.reload();
+        applyHabit(card, await api.post("{{ url_for('habits.rest_day') }}", { habit_id }));
         return;
     }
 
-    if (e.target.closest('[data-log]')) {
-        await api.post("{{ url_for('habits.log_habit') }}", { habit_id });
-        location.reload();
+    const logBtn = e.target.closest('[data-log]');
+    if (logBtn) {
+        applyHabit(card, await api.post("{{ url_for('habits.log_habit') }}", {
+            habit_id,
+            // Only the catch-up button carries a date; today's needs none.
+            ...(logBtn.dataset.date ? { date: logBtn.dataset.date } : {}),
+        }));
     }
 });
 </script>

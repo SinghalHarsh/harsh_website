@@ -34,15 +34,25 @@
 {% endmacro %}
 
 
-{# One habit's card. Shared so the dashboard and the habits page never drift. #}
-{% macro habit_card(habit) %}
-<div class="card habit-card {{ 'is-reset' if habit.was_reset and not habit.points }}" data-id="{{ habit._id }}">
+{# One habit's card. Shared so the dashboard and the habits page never drift.
+
+   `day` is 'today' or 'yesterday'. A habit done at night cannot be ticked
+   before midnight, so yesterday gets its own board of the same cards; only the
+   day's completion state and the date the buttons post differ. #}
+{% macro habit_card(habit, day='today') %}
+{% set late = day == 'yesterday' %}
+{% set done = habit.completed_yesterday if late else habit.completed_today %}
+{% set rested = habit.rested_yesterday if late else habit.rested_today %}
+{% set date_attr = habit.yesterday_iso if late else '' %}
+<div class="card habit-card {{ 'is-late' if late }} {{ 'is-reset' if habit.was_reset and not habit.points }}"
+     data-id="{{ habit._id }}" data-day="{{ day }}">
     <div class="habit-card__info">
         <h3>{{ habit.name }}</h3>
         <div class="habit-card__points">
             {{ habit.points }} <span>pts</span>
-            {% if habit.credits %}
-            <span class="credit-chip" data-tooltip="{{ habit.credits }} rest day{{ '' if habit.credits == 1 else 's' }} banked">
+            {% if habit.credit_amount %}
+            <span class="credit-chip {{ 'is-empty' if not habit.credits }}"
+                  data-tooltip="{{ habit.credits }} rest day{{ '' if habit.credits == 1 else 's' }} banked">
                 <i class="fa-solid fa-coins"></i> {{ habit.credits }}
             </span>
             {% endif %}
@@ -57,26 +67,29 @@
             <span class="tier-chip" data-tooltip="Tier {{ habit.tier }}: +{{ habit.hit_points }} a day, {{ habit.miss_points }} on a miss">x{{ habit.tier }}</span>
             {% endif %}
         </div>
-        {% if habit.rested_today %}
+        {% if rested %}
         <div class="habit-card__meta habit-card__sub">Rest day used</div>
+        {% elif late %}
+        <div class="habit-card__meta habit-card__sub">Still open</div>
         {% elif habit.best_streak > habit.streak %}
         <div class="habit-card__meta habit-card__sub">Best {{ habit.best_streak }} days</div>
         {% endif %}
     </div>
     <div class="habit-card__actions">
-        <button class="check-btn {{ 'is-done' if habit.completed_today }}{{ ' is-rested' if habit.rested_today }}"
-                data-log aria-label="Toggle {{ habit.name }}"
-                data-tooltip="{% if habit.rested_today %}Covered by a rest day{% elif habit.completed_today %}Completed today{% else %}Mark done{% endif %}">
-            <i class="fa-solid fa-{{ 'mug-hot' if habit.rested_today else 'check' }}"></i>
+        <button class="check-btn {{ 'is-done' if done }}{{ ' is-rested' if rested }}"
+                data-log {% if date_attr %}data-date="{{ date_attr }}"{% endif %}
+                aria-label="Toggle {{ habit.name }}{{ ' for yesterday' if late }}"
+                data-tooltip="{% if rested %}Covered by a rest day{% elif done %}Completed{% elif late %}Mark yesterday done{% else %}Mark done{% endif %}">
+            <i class="fa-solid fa-{{ 'mug-hot' if rested else 'check' }}"></i>
         </button>
-        {% if habit.rested_today %}
-        <button class="rest-btn is-resting" data-rest
+        {% if rested %}
+        <button class="rest-btn is-resting" data-rest {% if date_attr %}data-date="{{ date_attr }}"{% endif %}
                 aria-label="Undo rest day for {{ habit.name }}"
                 data-tooltip="Undo rest day">
             <i class="fa-solid fa-rotate-left"></i>
         </button>
-        {% elif habit.can_rest and habit.credits %}
-        <button class="rest-btn" data-rest
+        {% elif not done and habit.credits %}
+        <button class="rest-btn" data-rest {% if date_attr %}data-date="{{ date_attr }}"{% endif %}
                 aria-label="Use a rest day for {{ habit.name }}"
                 data-tooltip="Use a rest day ({{ habit.credits }} left)">
             <i class="fa-solid fa-mug-hot"></i>

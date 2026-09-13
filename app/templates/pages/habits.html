@@ -10,6 +10,8 @@
     </button>
 {% endcall %}
 
+{% set catch_up = habits | selectattr('yesterday_open') | list %}
+
 <!-- 1. Today's Focus -->
 <div class="section-header">
     <h2>Today's Focus</h2>
@@ -24,6 +26,19 @@
 </div>
 {% else %}
     {{ empty_state('No habits being tracked. Add one below.', 'fa-solid fa-check-double') }}
+{% endif %}
+
+{% if catch_up %}
+<div class="section-header">
+    <h2>Yesterday's Focus</h2>
+    <span class="section-header__meta">{{ catch_up | length }} still open</span>
+</div>
+
+<div class="habits-grid habits-grid--late">
+    {% for habit in catch_up %}
+    {{ habit_card(habit, 'yesterday') }}
+    {% endfor %}
+</div>
 {% endif %}
 
 <div class="panel chart-panel">
@@ -471,20 +486,64 @@ document.addEventListener('change', async (e) => {
     location.reload();
 });
 
+/* Swap one card for the server's freshly scored markup, in place.
+
+   Scoring is a full replay, so the response carries the whole card rather than
+   a field to patch: points, tier, credits and the rest button all move together
+   on a single toggle. */
+function swapCard(card, res) {
+    if (!res.card) return card.remove();
+    card.outerHTML = res.card;
+}
+
 document.addEventListener('click', async (e) => {
     const holder = e.target.closest('[data-id]');
     if (!holder) return;
     const id = holder.dataset.id;
+    const card = holder.classList.contains('habit-card') ? holder : null;
 
-    if (e.target.closest('[data-rest]')) {
-        await api.post("{{ url_for('habits.rest_day') }}", { habit_id: id });
-        location.reload();
+    /* A habit can be on screen twice — today's board and yesterday's, while
+       that day is still open — and either tick rescores both. Each card is
+       replaced with the server's markup for its own day; yesterday's card
+       goes away once the day is resolved. */
+    function settle(res) {
+        if (!card) return location.reload();
+
+        const today = document.querySelector(`.habit-card[data-id="${id}"][data-day="today"]`);
+        if (today && res.card) today.outerHTML = res.card;
+        else if (today && !res.card) today.remove();
+
+        const late = document.querySelector(`.habit-card[data-id="${id}"][data-day="yesterday"]`);
+        if (late) {
+            if (res.late_card) late.outerHTML = res.late_card;
+            else {
+                const grid = late.closest('.habits-grid--late');
+                late.remove();
+                if (grid && !grid.querySelector('.habit-card')) {
+                    grid.previousElementSibling?.remove();
+                    grid.remove();
+                }
+            }
+        }
+    }
+
+    const restBtn = e.target.closest('[data-rest]');
+    if (restBtn) {
+        settle(await api.post("{{ url_for('habits.rest_day') }}", {
+            habit_id: id,
+            ...(restBtn.dataset.date ? { date: restBtn.dataset.date } : {}),
+        }));
         return;
     }
 
-    if (e.target.closest('[data-log]')) {
-        await api.post("{{ url_for('habits.log_habit') }}", { habit_id: id });
-        location.reload();
+    const logBtn = e.target.closest('[data-log]');
+    if (logBtn) {
+        settle(await api.post("{{ url_for('habits.log_habit') }}", {
+            habit_id: id,
+            // Only the catch-up buttons carry a date; today's needs none.
+            ...(logBtn.dataset.date ? { date: logBtn.dataset.date } : {}),
+        }));
+        return;
     }
 
     if (e.target.closest('[data-pause]')) {

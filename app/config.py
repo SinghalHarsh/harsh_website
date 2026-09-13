@@ -13,6 +13,10 @@ class Config:
     SITE_NAME = "Harsh Website"
     DATA_DIR = BASE_DIR / "data"
 
+    # Without this Flask serves static files as no-cache, so every page change
+    # revalidates all of them — a round-trip each, before anything renders.
+    SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 7
+
     MONGO_URI = os.getenv("MONGO_URI")
     MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "harsh_website")
 

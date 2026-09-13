@@ -13,12 +13,15 @@ def _wants_json():
     return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
 
-def active_supplements(annotated=False):
+def active_supplements(annotated=False, slots=None):
     active = [s for s in db.supplements.find() if not s.get('deleted')]
     if annotated:
         today = datetime.now()
+        # Yesterday's board only offers the slots actually switched on, so the
+        # enabled set has to reach annotate rather than defaulting to all.
+        enabled = slots if slots is not None else supplement_service.ALL_SLOTS
         for supplement in active:
-            supplement_service.annotate(supplement, today)
+            supplement_service.annotate(supplement, today, enabled)
     return active
 
 
@@ -35,8 +38,8 @@ def supplements():
     today = datetime.now()
     today_iso = today.strftime('%Y-%m-%d')
 
-    active = active_supplements(annotated=True)
     slots = enabled_slots()
+    active = active_supplements(annotated=True, slots=slots)
 
     selected_name = request.args.get('supplement', 'overall')
     selected = next((s for s in active if s['name'] == selected_name), None)

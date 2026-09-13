@@ -52,6 +52,40 @@
 </div>
 {% endif %}
 
+{% set catch_up = supplements | selectattr('yesterday_open') | list %}
+{% if catch_up %}
+<div class="section-header">
+    <h2>Yesterday</h2>
+    <span class="section-header__meta">{{ catch_up | length }} still open</span>
+</div>
+
+<div class="supp-grid">
+    {% for supplement in catch_up %}
+    <div class="card supp-card is-late" data-id="{{ supplement._id }}">
+        <div class="supp-card__info">
+            <h3>{{ supplement.name }}</h3>
+            <div class="supp-card__slot">
+                <span class="slot-chip slot-chip--{{ supplement.slot }}">{{ supplement.slot }}</span>
+            </div>
+            <div class="supp-card__meta supp-card__sub">Still open</div>
+        </div>
+        <div class="supp-card__actions">
+            {% for slot in slots %}
+            {% if supplement.slot in (slot, 'either') %}
+            <button class="slot-btn {{ 'is-done' if supplement.taken_slots_yesterday[slot] }}"
+                    data-log data-slot="{{ slot }}" data-date="{{ supplement.yesterday_iso }}"
+                    aria-label="Toggle {{ supplement.name }} for {{ slot }} yesterday"
+                    data-tooltip="{{ slot | capitalize }} yesterday{{ ' — taken' if supplement.taken_slots_yesterday[slot] }}">
+                <i class="fa-solid fa-{{ slot_icons[slot] }}"></i>
+            </button>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- 2. Intake History -->
 {% if supplements %}
 <div class="section-header">
@@ -275,6 +309,8 @@ document.addEventListener('click', async (e) => {
         const res = await api.post("{{ url_for('supplements.log_supplement') }}", {
             supplement_id: id,
             slot: logBtn.dataset.slot,
+            // Only yesterday's buttons carry a date; today's needs none.
+            ...(logBtn.dataset.date ? { date: logBtn.dataset.date } : {}),
         });
         logBtn.classList.toggle('is-done', res.action === 'added');
 

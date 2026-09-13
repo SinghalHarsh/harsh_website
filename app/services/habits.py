@@ -24,6 +24,10 @@ and the point is still earned. Days claimed as rest are stored in `rest_days`.
 A day that is simply missed also spends a credit if one is available, so an
 unclaimed slip is covered the same way.
 
+Yesterday stays open: a habit done late at night cannot be ticked before
+midnight, so an untouched yesterday is pending rather than missed, and can
+still be filled in. It is charged as a miss once it falls out of that window.
+
 Miss five days in a row, or sit at zero for ten, and the habit resets: its
 score returns to zero. Leave it untouched for `RETIRE_AFTER_DEAD` days beyond
 that and it drops out of the active list back into your ideas, so the board
@@ -46,6 +50,10 @@ NO_REST = 9999        # a rate this high means the habit never earns rest days
 RESET_AFTER_MISSES = 5
 RESET_AFTER_DEAD = 10
 RETIRE_AFTER_DEAD = 10   # further idle days before it leaves the active list
+
+# Days back that stay open to be filled in. One means yesterday is still
+# pending: a habit done late at night cannot be ticked before midnight.
+GRACE_DAYS = 1
 
 
 def tier_for(net_days):
@@ -184,6 +192,8 @@ def _replay_days(habit, today):
     rest = set(habit.get('rest_days', []))
     state = _State(credit_every(habit), credit_amount(habit))
 
+    grace = today - timedelta(days=GRACE_DAYS)
+
     date = _start_date(habit, today)
     while date <= today:
         date_str = date.strftime('%Y-%m-%d')
@@ -196,9 +206,11 @@ def _replay_days(habit, today):
             # the claim is unaffordable and the day counts as missed.
             if not state.spend_credit():
                 state.miss()
-        elif date < today:
-            # Today is still open, so an untouched today is not yet a miss.
+        elif date < grace:
             state.miss()
+        # Anything from `grace` onwards is still open: a habit done at night
+        # cannot be ticked before midnight, so the day is pending rather than
+        # missed. It is charged as a miss once it falls outside the window.
 
         date += timedelta(days=1)
 
@@ -222,10 +234,26 @@ def annotate(habit, today):
     today_str = today.strftime('%Y-%m-%d')
     state = habit_state(habit, today)
 
+    rest_days = set(habit.get('rest_days', []))
+    yesterday = today - timedelta(days=GRACE_DAYS)
+    yesterday_str = yesterday.strftime('%Y-%m-%d')
+    started = _start_date(habit, today)
+
     habit['completed_today'] = today_str in history
-    habit['rested_today'] = today_str in set(habit.get('rest_days', []))
+    habit['rested_today'] = today_str in rest_days
     habit['can_rest'] = (
         not habit['completed_today'] and not habit['rested_today']
+    )
+
+    habit['yesterday_iso'] = yesterday_str
+    habit['completed_yesterday'] = yesterday_str in history
+    habit['rested_yesterday'] = yesterday_str in rest_days
+    # Offering yesterday before the habit existed would log a day it was never
+    # meant to cover.
+    habit['yesterday_open'] = (
+        not habit['completed_yesterday']
+        and not habit['rested_yesterday']
+        and started <= yesterday
     )
 
     habit['points'] = state.score
@@ -372,6 +400,8 @@ def _replay_scores(habit, today, from_stamp):
     rest = set(habit.get('rest_days', []))
     state = _State(credit_every(habit), credit_amount(habit))
 
+    grace = today - timedelta(days=GRACE_DAYS)
+
     scores = {}
     date = _start_date(habit, today)
     while date <= today:
@@ -382,7 +412,9 @@ def _replay_scores(habit, today, from_stamp):
         elif stamp in rest:
             if not state.spend_credit():
                 state.miss()
-        elif date < today:
+        elif date < grace:
+            # Same open window as `_replay_days`, or the chart would charge a
+            # miss the cards still show as pending.
             state.miss()
 
         if stamp >= from_stamp:

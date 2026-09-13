@@ -540,6 +540,11 @@
     display: grid; place-items: center; transition: all var(--transition);
 }
 .rest-btn:hover { color: var(--primary); border-color: var(--primary); }
+/* Yesterday's board: the same cards, marked as a day that is closing. */
+.habit-card.is-late,
+.supp-card.is-late { border-style: dashed; }
+.habit-card.is-late .habit-card__sub,
+.supp-card.is-late .supp-card__sub { color: var(--warning); }
 .rest-btn.is-resting { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
 .check-btn.is-rested {
     background: var(--surface-alt);
@@ -561,3 +566,5 @@
     background: var(--surface-alt); border-radius: var(--r-full);
     font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted);
 }
+/* No rest day banked yet: still shown, so the balance never just disappears. */
+.credit-chip.is-empty { color: var(--text-subtle); opacity: 0.65; }

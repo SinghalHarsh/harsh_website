@@ -1,4 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import (
+    Blueprint, render_template, request, redirect, url_for, jsonify,
+    current_app,
+)
 from datetime import datetime
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
@@ -34,6 +37,52 @@ def _int_field(value, default, low, high):
         return max(low, min(high, int(value)))
     except (TypeError, ValueError):
         return default
+
+
+def _board(today):
+    """Today's active board, annotated — the same set both pages render."""
+    habits = [h for h in db.habits.find({'active': True, 'deleted': {'$ne': True}})]
+    for habit in habits:
+        habit_service.annotate(habit, today)
+    return [h for h in habits if not h.get('should_retire')]
+
+
+def _card_response(habit_id, action, today):
+    """One habit's fresh cards, plus the totals a logging action moves.
+
+    The cards come back as rendered HTML from the same macro the pages use, so
+    patching one in place cannot drift from the server's own markup. Scoring is
+    a full replay, so a single toggle changes points, tier, credits and the
+    day's totals together — they all travel in one response.
+
+    Both days are rendered because a habit can appear twice at once: once on
+    today's board and once on yesterday's while that day is still open. Ticking
+    either changes the score both of them display.
+    """
+    board = _board(today)
+    habit = next((h for h in board if h['_id'] == habit_id), None)
+    metrics = habit_service.metrics(board, today)
+
+    macros = current_app.jinja_env.get_template('components/_macros.html')
+    # A habit that just retired itself off the board has no card to show.
+    today_card = macros.module.habit_card(habit, 'today') if habit else None
+    # Yesterday's card only stands while that day is unresolved.
+    late_card = (
+        macros.module.habit_card(habit, 'yesterday')
+        if habit and habit.get('yesterday_open') else None
+    )
+
+    return jsonify({
+        'status': 'success',
+        'action': action,
+        'id': str(habit_id),
+        'card': today_card,
+        'late_card': late_card,
+        'score': habit_service.daily_score(board, today),
+        # The dashboard's running total and weekly delta, which a tick moves.
+        'points': metrics['points'],
+        'points_delta': metrics['points_delta'],
+    })
 
 
 @habits_bp.route('/habits')
@@ -153,7 +202,8 @@ def log_habit():
     habit_id = _object_id(request.form.get('habit_id'))
     if not habit_id:
         return jsonify({'error': 'Invalid habit'}), 400
-    date_str = request.form.get('date') or datetime.now().strftime('%Y-%m-%d')
+    today = datetime.now()
+    date_str = request.form.get('date') or today.strftime('%Y-%m-%d')
 
     habit = db.habits.find_one({'_id': habit_id})
     if not habit:
@@ -168,7 +218,7 @@ def log_habit():
         action = 'added'
 
     if _wants_json():
-        return jsonify({'status': 'success', 'action': action, 'id': str(habit_id)})
+        return _card_response(habit_id, action, today)
     return redirect(url_for('habits.habits'))
 
 
@@ -178,7 +228,8 @@ def rest_day():
     habit_id = _object_id(request.form.get('habit_id'))
     if not habit_id:
         return jsonify({'error': 'Invalid habit'}), 400
-    date_str = request.form.get('date') or datetime.now().strftime('%Y-%m-%d')
+    today = datetime.now()
+    date_str = request.form.get('date') or today.strftime('%Y-%m-%d')
 
     habit = db.habits.find_one({'_id': habit_id})
     if not habit:
@@ -188,13 +239,13 @@ def rest_day():
         db.habits.update_one({'_id': habit['_id']}, {'$pull': {'rest_days': date_str}})
         action = 'removed'
     else:
-        if not habit_service.habit_state(habit, datetime.now()).credits:
+        if not habit_service.habit_state(habit, today).credits:
             return jsonify({'error': 'No credits available'}), 400
         db.habits.update_one({'_id': habit['_id']}, {'$addToSet': {'rest_days': date_str}})
         action = 'added'
 
     if _wants_json():
-        return jsonify({'status': 'success', 'action': action, 'id': str(habit_id)})
+        return _card_response(habit_id, action, today)
     return redirect(url_for('habits.habits'))
 
 

@@ -38,7 +38,13 @@ def home():
     today = datetime.now()
     today_str = today.strftime('%Y-%m-%d')
 
-    active_habits = list(db.habits.find({"active": True, "deleted": {"$ne": True}}))
+    # Only the fields scoring and the cards actually read: the dashboard does
+    # not need every habit's whole document.
+    active_habits = list(db.habits.find(
+        {"active": True, "deleted": {"$ne": True}},
+        {"name": 1, "color": 1, "history": 1, "rest_days": 1,
+         "created_at": 1, "credit_every": 1, "credit_amount": 1},
+    ))
     for habit in active_habits:
         habit_service.annotate(habit, today)
 
@@ -47,16 +53,18 @@ def home():
 
     pending_habits = [h for h in active_habits if not h['completed_today']]
     score = habit_service.daily_score(active_habits, today)
+    # The same running total and weekly delta the habits chart shows, so the
+    # two pages never disagree.
+    habit_metrics = habit_service.metrics(active_habits, today)
+    habit_points = habit_metrics['points']
+    habit_points_delta = habit_metrics['points_delta']
 
-    active_goals = list(db.goals.find({"completed": {"$ne": True}}))
     todays_reminders = reminder_service.active_on(list(db.reminders.find()), today_str)
 
     supplement_slots = enabled_slots()
     supplements = sorted(
         active_supplements(annotated=True), key=lambda s: s['name'].lower()
     )
-
-    all_content = _all_quote_content()
 
     return render_template(
         'pages/index.html',
@@ -67,13 +75,12 @@ def home():
         habits_completed=score['completed'],
         habits_total=score['total'],
         habit_score=score,
+        habit_points=habit_points,
+        habit_points_delta=habit_points_delta,
         habits=active_habits,
         pending_habits=pending_habits,
-        active_goals_count=len(active_goals),
-        active_goals=active_goals,
         reminders_today_count=len(todays_reminders),
         todays_reminders=todays_reminders,
-        selected_quote=random.choice(all_content) if all_content else None,
         today_iso=today_str,
     )
 

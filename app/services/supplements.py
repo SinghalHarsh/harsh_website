@@ -56,16 +56,38 @@ def annotate(supplement, today, slots=ALL_SLOTS):
 
     Every known slot is filled in, not just the enabled ones, so a dose logged
     under a slot that was later switched off still reads back as taken.
+
+    Yesterday is carried alongside today: a dose taken at night is often only
+    recorded the next morning, so that day stays fillable.
     """
     history = supplement.get('history', [])
     today_iso = today.strftime('%Y-%m-%d')
+    yesterday = today - timedelta(days=1)
+    yesterday_iso = yesterday.strftime('%Y-%m-%d')
     days = taken_days(history)
+    known = set(slots) | set(ALL_SLOTS)
 
     supplement['taken_today'] = today_iso in days
     supplement['slot'] = supplement.get('slot', EITHER)
     supplement['taken_slots'] = {
-        slot: entry(today_iso, slot) in history for slot in set(slots) | set(ALL_SLOTS)
+        slot: entry(today_iso, slot) in history for slot in known
     }
+
+    supplement['yesterday_iso'] = yesterday_iso
+    supplement['taken_yesterday'] = yesterday_iso in days
+    supplement['taken_slots_yesterday'] = {
+        slot: entry(yesterday_iso, slot) in history for slot in known
+    }
+    # Only worth offering once the supplement existed, and only while some
+    # enabled slot for it is still unfilled.
+    created = str(supplement.get('created_at', ''))[:10]
+    supplement['yesterday_open'] = (
+        (not created or created <= yesterday_iso)
+        and any(
+            not supplement['taken_slots_yesterday'][s]
+            for s in slots_for(supplement, slots)
+        )
+    )
     supplement['times_taken'] = len(history)
     supplement['days_this_year'] = sum(
         1 for d in days if d.startswith(today.strftime('%Y'))
